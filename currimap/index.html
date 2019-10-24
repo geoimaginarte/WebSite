@@ -1,0 +1,360 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge">
+        <meta name="viewport" content="initial-scale=1,user-scalable=no,maximum-scale=1,width=device-width">
+        <meta name="mobile-web-app-capable" content="yes">
+        <meta name="apple-mobile-web-app-capable" content="yes">
+        <link rel="stylesheet" href="css/leaflet.css">
+        <link rel="stylesheet" href="css/qgis2web.css"><link rel="stylesheet" href="css/fontawesome-all.min.css">
+        <link rel="stylesheet" href="css/leaflet-search.css">
+        <link rel="stylesheet" href="css/leaflet-measure.css">
+        <style>
+        html, body, #map {
+            width: 100%;
+            height: 100%;
+            padding: 0;
+            margin: 0;
+        }
+        </style>
+        <title></title>
+    </head>
+    <body>
+        <div id="map">
+        </div>
+        <script src="js/qgis2web_expressions.js"></script>
+        <script src="js/leaflet.js"></script>
+        <script src="js/leaflet.rotatedMarker.js"></script>
+        <script src="js/leaflet.pattern.js"></script>
+        <script src="js/leaflet-hash.js"></script>
+        <script src="js/Autolinker.min.js"></script>
+        <script src="js/rbush.min.js"></script>
+        <script src="js/labelgun.min.js"></script>
+        <script src="js/labels.js"></script>
+        <script src="js/leaflet-measure.js"></script>
+        <script src="js/leaflet-search.js"></script>
+        <script src="data/Tipo_1.js"></script>
+        <script src="data/Categorias_2.js"></script>
+        <script>
+        var map = L.map('map', {
+            zoomControl:true, maxZoom:28, minZoom:1
+        }).fitBounds([[9.892583523641541,-84.05645283692259],[9.940094510113614,-84.00028785894595]]);
+        var hash = new L.Hash(map);
+        map.attributionControl.setPrefix('<a href="https://github.com/tomchadwin/qgis2web" target="_blank">qgis2web</a> &middot; <a href="http://leafletjs.com" title="A JS library for interactive maps">Leaflet</a>');
+        var measureControl = new L.Control.Measure({
+            position: 'topleft',
+            primaryLengthUnit: 'meters',
+            secondaryLengthUnit: 'kilometers',
+            primaryAreaUnit: 'sqmeters',
+            secondaryAreaUnit: 'hectares'
+        });
+        measureControl.addTo(map);
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0]
+        .innerHTML = '';
+        document.getElementsByClassName('leaflet-control-measure-toggle')[0]
+        .className += ' fas fa-ruler';
+        var bounds_group = new L.featureGroup([]);
+        function setBounds() {
+        }
+        var layer_GoogleSatelliteHybrid_0 = L.tileLayer('http://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}', {
+            opacity: 1.0,
+            attribution: '',
+        });
+        layer_GoogleSatelliteHybrid_0;
+        map.addLayer(layer_GoogleSatelliteHybrid_0);
+        function pop_Tipo_1(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">Tipo</th>\
+                        <td>' + (feature.properties['Tipo'] !== null ? Autolinker.link(String(feature.properties['Tipo'])) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_Tipo_1_0(feature) {
+            switch(String(feature.properties['Tipo'])) {
+                case 'Otros Usos del Suelo':
+                    return {
+                pane: 'pane_Tipo_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.7)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(200,73,194,0.7)',
+            }
+                    break;
+                case 'Zona de Transecto':
+                    return {
+                pane: 'pane_Tipo_1',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.7)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(42,212,221,0.7)',
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_Tipo_1');
+        map.getPane('pane_Tipo_1').style.zIndex = 401;
+        map.getPane('pane_Tipo_1').style['mix-blend-mode'] = 'normal';
+        var layer_Tipo_1 = new L.geoJson(json_Tipo_1, {
+            attribution: '',
+            pane: 'pane_Tipo_1',
+            onEachFeature: pop_Tipo_1,
+            style: style_Tipo_1_0,
+        });
+        bounds_group.addLayer(layer_Tipo_1);
+        map.addLayer(layer_Tipo_1);
+        function pop_Categorias_2(feature, layer) {
+            var popupContent = '<table>\
+                    <tr>\
+                        <th scope="row">CategoryID</th>\
+                        <td>' + (feature.properties['CategoryID'] !== null ? Autolinker.link(String(feature.properties['CategoryID'])) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Area</th>\
+                        <td>' + (feature.properties['Area'] !== null ? Autolinker.link(String(feature.properties['Area'])) : '') + '</td>\
+                    </tr>\
+                    <tr>\
+                        <th scope="row">Categoria</th>\
+                        <td>' + (feature.properties['Categoria'] !== null ? Autolinker.link(String(feature.properties['Categoria'])) : '') + '</td>\
+                    </tr>\
+                </table>';
+            layer.bindPopup(popupContent, {maxHeight: 400});
+        }
+
+        function style_Categorias_2_0(feature) {
+            switch(String(feature.properties['Categoria'])) {
+                case 'Area de Proteccion':
+                    return {
+                pane: 'pane_Categorias_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.7)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(237,225,90,0.7)',
+            }
+                    break;
+                case 'Central Periferico':
+                    return {
+                pane: 'pane_Categorias_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.7)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(167,206,95,0.7)',
+            }
+                    break;
+                case 'Civico':
+                    return {
+                pane: 'pane_Categorias_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.7)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(117,124,229,0.7)',
+            }
+                    break;
+                case 'General Periferico':
+                    return {
+                pane: 'pane_Categorias_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.7)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(109,237,69,0.7)',
+            }
+                    break;
+                case 'Industrial':
+                    return {
+                pane: 'pane_Categorias_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.7)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(79,142,205,0.7)',
+            }
+                    break;
+                case 'Local Barrial':
+                    return {
+                pane: 'pane_Categorias_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.7)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(203,125,47,0.7)',
+            }
+                    break;
+                case 'Nucleo Periferico':
+                    return {
+                pane: 'pane_Categorias_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.7)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(93,227,120,0.7)',
+            }
+                    break;
+                case 'Nucleo Urbano':
+                    return {
+                pane: 'pane_Categorias_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.7)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(93,17,235,0.7)',
+            }
+                    break;
+                case 'Predios Institucionales':
+                    return {
+                pane: 'pane_Categorias_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.7)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(119,216,223,0.7)',
+            }
+                    break;
+                case 'Urbano Central':
+                    return {
+                pane: 'pane_Categorias_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.7)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(215,83,132,0.7)',
+            }
+                    break;
+                case 'Urbano General':
+                    return {
+                pane: 'pane_Categorias_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.7)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(221,109,101,0.7)',
+            }
+                    break;
+                case 'Zona de Proteccion Forestal':
+                    return {
+                pane: 'pane_Categorias_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.7)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(201,93,178,0.7)',
+            }
+                    break;
+                case 'Zonas de Verdes':
+                    return {
+                pane: 'pane_Categorias_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.7)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(141,232,200,0.7)',
+            }
+                    break;
+                case 'NULL':
+                    return {
+                pane: 'pane_Categorias_2',
+                opacity: 1,
+                color: 'rgba(35,35,35,0.7)',
+                dashArray: '',
+                lineCap: 'butt',
+                lineJoin: 'miter',
+                weight: 1.0, 
+                fill: true,
+                fillOpacity: 1,
+                fillColor: 'rgba(181,49,217,0.7)',
+            }
+                    break;
+            }
+        }
+        map.createPane('pane_Categorias_2');
+        map.getPane('pane_Categorias_2').style.zIndex = 402;
+        map.getPane('pane_Categorias_2').style['mix-blend-mode'] = 'normal';
+        var layer_Categorias_2 = new L.geoJson(json_Categorias_2, {
+            attribution: '',
+            pane: 'pane_Categorias_2',
+            onEachFeature: pop_Categorias_2,
+            style: style_Categorias_2_0,
+        });
+        bounds_group.addLayer(layer_Categorias_2);
+        map.addLayer(layer_Categorias_2);
+        var baseMaps = {};
+        L.control.layers(baseMaps,{'Categorias<br /><table><tr><td style="text-align: center;"><img src="legend/Categorias_2_AreadeProteccion0.png" /></td><td>Area de Proteccion</td></tr><tr><td style="text-align: center;"><img src="legend/Categorias_2_CentralPeriferico1.png" /></td><td>Central Periferico</td></tr><tr><td style="text-align: center;"><img src="legend/Categorias_2_Civico2.png" /></td><td>Civico</td></tr><tr><td style="text-align: center;"><img src="legend/Categorias_2_GeneralPeriferico3.png" /></td><td>General Periferico</td></tr><tr><td style="text-align: center;"><img src="legend/Categorias_2_Industrial4.png" /></td><td>Industrial</td></tr><tr><td style="text-align: center;"><img src="legend/Categorias_2_LocalBarrial5.png" /></td><td>Local Barrial</td></tr><tr><td style="text-align: center;"><img src="legend/Categorias_2_NucleoPeriferico6.png" /></td><td>Nucleo Periferico</td></tr><tr><td style="text-align: center;"><img src="legend/Categorias_2_NucleoUrbano7.png" /></td><td>Nucleo Urbano</td></tr><tr><td style="text-align: center;"><img src="legend/Categorias_2_PrediosInstitucionales8.png" /></td><td>Predios Institucionales</td></tr><tr><td style="text-align: center;"><img src="legend/Categorias_2_UrbanoCentral9.png" /></td><td>Urbano Central</td></tr><tr><td style="text-align: center;"><img src="legend/Categorias_2_UrbanoGeneral10.png" /></td><td>Urbano General</td></tr><tr><td style="text-align: center;"><img src="legend/Categorias_2_ZonadeProteccionForestal11.png" /></td><td>Zona de Proteccion Forestal</td></tr><tr><td style="text-align: center;"><img src="legend/Categorias_2_ZonasdeVerdes12.png" /></td><td>Zonas de Verdes</td></tr><tr><td style="text-align: center;"><img src="legend/Categorias_2_13.png" /></td><td></td></tr></table>': layer_Categorias_2,'Tipo<br /><table><tr><td style="text-align: center;"><img src="legend/Tipo_1_OtrosUsosdelSuelo0.png" /></td><td>Otros Usos del Suelo</td></tr><tr><td style="text-align: center;"><img src="legend/Tipo_1_ZonadeTransecto1.png" /></td><td>Zona de Transecto</td></tr></table>': layer_Tipo_1,"Google Satellite Hybrid": layer_GoogleSatelliteHybrid_0,},{collapsed:false}).addTo(map);
+        setBounds();
+        map.addControl(new L.Control.Search({
+            layer: layer_Categorias_2,
+            initial: false,
+            hideMarkerOnCollapse: true,
+            propertyName: 'Categoria'}));
+        document.getElementsByClassName('search-button')[0].className +=
+         ' fa fa-binoculars';
+        </script>
+    </body>
+</html>
