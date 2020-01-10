@@ -210,13 +210,13 @@ raster::hist(ecoreg, main="Histograma de las Ecoregiones del area de estudio", c
 A continuacion, se carga el un archivo espacial de tipo vectorial correspondiente a los paises que conforman el area de estudio.
 
 ```{r}
-area_estudio_p <- sf::st_read(dsn="E:/Analista de datos/DAT004/Proyecto Final/Datasets/samples/area_estudio_p.shp", layer="area_estudio_p", quiet=TRUE)
+area_estudio <- sf::st_read(dsn="E:/Analista de datos/DAT004/Proyecto Final/Datasets/samples/map.geojson", layer="map", quiet=TRUE)
 ```
 
 Y procede a crear una visualizacion del mismo.
 
 ```{r}
-map.area <- plot_geo(area_estudio_p, name=~pais, color = I("#89C5DA"))%>% hide_legend()
+map.area <- plot_geo(area_estudio, name=~pais, color = I("#89C5DA"))%>% hide_legend()
 
 map.area
 ```
@@ -292,40 +292,55 @@ plot_ly(x= wildcats$Pais,split=wildcats$Nombre_Comun, color= I(cf2(wildcats$Nomb
   layout(barmode = "overlay")
 ```
 
-
+### Cantidad de Jaguares por pais
 
 ```{r}
-c.pumas <- wildcats%>%
-              dplyr::filter(Nombre_Comun == "Puma")%>%
-              dplyr::group_by(Pais)%>%
-              dplyr::summarise(Cant=n())
 c.jaguars <- wildcats%>%
               dplyr::filter(Nombre_Comun == "Jaguar")%>%
               dplyr::group_by(Pais)%>%
               dplyr::summarise(Cant=n())
+c.pumas <- wildcats%>%
+              dplyr::filter(Nombre_Comun == "Puma")%>%
+              dplyr::group_by(Pais)%>%
+              dplyr::summarise(Cant=n())
 ```
 
-
-### Cantidad de Jaguares por pais
-
 ```{r}
-jm <- c.jaguars%>% 
-  e_charts(Pais)%>%
-  e_map(Cant,center=list(-63, -11), zoom=2)%>% 
-  e_visual_map(Cant)%>%
-  e_theme("roma")%>%
-  e_title("Nro.Jaguares por pais")
+data(worldgeojson, package = "highcharter")
+
+highchart() %>% 
+  hc_title(text = "Cantidad de Jaguares") %>% 
+  hc_subtitle(text = "por pais") %>% 
+  hc_add_series_map(map = worldgeojson, df = c.jaguars, name = "cantidad de individuos",
+                    value = "Cant", joinBy = c("name", "Pais"), allAreas=FALSE, animation=TRUE)%>% 
+  hc_colorAxis(min= 1,
+            type='logarithmic',
+            stops = color_stops())%>% 
+  hc_tooltip(useHTML = TRUE, headerFormat = "",
+             pointFormat = "Pais: {point.name}/ Cantidad de especies: {point.Cant}")%>%
+  hc_legend(layout= 'horizontal',
+            verticalAlign= 'top')%>%
+  hc_mapNavigation(enabled = TRUE) 
 ```
 
 ### Cantidad de Pumas por pais
 
 ```{r}
-pm <- c.pumas%>% 
-  e_charts(Pais)%>% 
-  e_map(Cant, center=list(-63, -11), zoom=2)%>% 
-  e_visual_map(Cant)%>% 
-  e_theme("westeros")%>%
-  e_title("Nro.Pumas por pais")
+data(worldgeojson, package = "highcharter")
+
+highchart() %>% 
+  hc_title(text = "Cantidad de Pumas") %>% 
+  hc_subtitle(text = "por pais") %>% 
+  hc_add_series_map(map = worldgeojson, df = c.pumas, name = "cantidad de individuos",
+                    value = "Cant", joinBy = c("name", "Pais"), allAreas= FALSE, animation=TRUE)%>% 
+  hc_colorAxis(min= 1,
+            type='logarithmic',
+            stops = color_stops())%>% 
+  hc_tooltip(useHTML = TRUE, headerFormat = "",
+             pointFormat = "Pais: {point.name}/ Cantidad de especies: {point.Cant}")%>%
+  hc_legend(layout= 'horizontal',
+            verticalAlign= 'top')%>%
+  hc_mapNavigation(enabled = TRUE) 
 ```
 
 ## Distribucion de las especies y lineas de tiempo {.tabset .tabset-fade}
@@ -333,8 +348,20 @@ pm <- c.pumas%>%
 ### Especies por mes y año
 
 ```{r}
+ct.wildcats <- wildcats%>%
+              dplyr::group_by(Fecha_Registro, Nombre_Comun)%>%
+              dplyr::summarise(Cant=n())
+
+ct.wildcats <-reshape(ct.wildcats, idvar = "Fecha_Registro", timevar="Nombre_Comun", direction = "wide")
+```
+
+```{r}
 highchart(type = "stock") %>% 
-  hc_add_series(wildcats$Y.M.R, type = "line")
+  hc_title(text = "Cantidad de especies") %>% 
+  hc_subtitle(text = "en la linea de tiempo de observacion") %>% 
+  hc_add_series(wildcats$Y.M.R, type = "spline", pointInterval= 30*24*3600*1000, name="Cant de especies en la linea de tiempo")%>%
+  hc_xAxis(title= list(text='Fechas'), type='datetime')%>%
+  hc_yAxis(title= list(text='Cantidad de especies observadas'), opposite = FALSE)
 ```
 
 ### Distribucion de las especies por mes
