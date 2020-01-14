@@ -44,13 +44,13 @@ A continuación, se exponen el tema a tratar en esta investigación, los objetiv
 # Objetivos
 
 <ul><li>1. Estadísticas espacio-temporales sobre los pumas y jaguares de un sector del continente americano, en las que se evalua: densidad por zonas y por pais, patrones de distribución dentro del area de estudio y frecuencia de observaciones por mes</li></ul>
-<ul><li>2. Analisis de interpolación de Krigging respecto del número de individuos observados por año </li></ul>
-<ul><li>3. Modelado de la distribución de los pumas y jaguares del área de estudio, según la máxima entropía con la cual se determina la probabilidad de condiciones adecuadas para la especie</li></ul>
+<ul><li>2. Modelado de la distribución de los pumas y jaguares del área de estudio, según la máxima entropía con la cual se determina la probabilidad de condiciones adecuadas para la especie</li></ul>
 
 # Librerias
 
 ```{r message=FALSE,warning=FALSE}
 library(dplyr)
+library(tidyr)
 library(sp)
 library(DT)
 library(leaflet)
@@ -64,9 +64,7 @@ library(here)
 library(rasterVis)
 library(devtools)
 library(proto)
-library(dygraphs)
 library(highcharter)
-library(echarts4r)
 ```
 
 # Procesos de extracción, transformación y carga de las Bases de datos
@@ -282,9 +280,10 @@ datatable(wildcats, extensions = c('Buttons','FixedColumns', 'RowReorder'),
 
 # Resultados
 
-## Estadísticas espacio-temporales sobre los pumas y jaguares de un sector del continente americano {.tabset .tabset-fade}
+En este primer apartado se realizan analisis sobre estadísticas espacio-temporales respecto de los pumas y jaguares de un sector del continente americano 
+## Cantidad de especies segun pais{.tabset .tabset-fade}
 
-### Especie por pais y mes
+### Especies por pais y mes de observacion
 
 ```{r}
 plot_ly(x= wildcats$Pais,split=wildcats$Nombre_Comun, color= I(cf2(wildcats$Nombre_Comun)), 
@@ -343,28 +342,54 @@ highchart() %>%
   hc_mapNavigation(enabled = TRUE) 
 ```
 
-## Distribucion de las especies y lineas de tiempo {.tabset .tabset-fade}
+## Cantidad de individuos observados en el tiempo {.tabset .tabset-fade}
 
 ### Especies por mes y año
 
+
 ```{r}
-ct.wildcats <- wildcats%>%
-              dplyr::group_by(Fecha_Registro, Nombre_Comun)%>%
+c.jaguars <- wildcats%>%
+              dplyr::filter(Nombre_Comun == "Jaguar")%>%
+              dplyr::group_by(Fecha_Registro)%>%
+              dplyr::summarise(Cant=n())
+c.pumas <- wildcats%>%
+              dplyr::filter(Nombre_Comun == "Puma")%>%
+              dplyr::group_by(Fecha_Registro)%>%
               dplyr::summarise(Cant=n())
 
-ct.wildcats <-reshape(ct.wildcats, idvar = "Fecha_Registro", timevar="Nombre_Comun", direction = "wide")
+ct.jaguars <- ts(data=c.jaguars, start = c(2011,10), end = c(2019,12), frequency = 12)
+ct.pumas <- ts(data=c.pumas, start = c(2011,10), end = c(2019,12), frequency = 12)
 ```
+
+
 
 ```{r}
 highchart(type = "stock") %>% 
   hc_title(text = "Cantidad de especies") %>% 
   hc_subtitle(text = "en la linea de tiempo de observacion") %>% 
-  hc_add_series(wildcats$Y.M.R, type = "spline", pointInterval= 30*24*3600*1000, name="Cant de especies en la linea de tiempo")%>%
+  hc_add_series(ct.jaguars[,2], type = "line", pointInterval= 30*24*3600*1000, name="Cant de jaguares observados a la fecha", color = "#ffa500")%>%
+  hc_add_series(ct.pumas[,2], type = "line", pointInterval= 30*24*3600*1000, name="Cant de pumas observados a a fecha", color = "#13ED3F")%>%
   hc_xAxis(title= list(text='Fechas'), type='datetime')%>%
   hc_yAxis(title= list(text='Cantidad de especies observadas'), opposite = FALSE)
 ```
 
-### Distribucion de las especies por mes
+### Descomposicion y comportamiento de observaciones de los individuos en el tiempo
+
+```{r}
+decomp_jaguars <- decompose(ct.jaguars[,2])
+decomp_pumas <- decompose(ct.pumas[,2])
+plot(decomp_jaguars)
+par(adj = 1)
+title(sub = "Jaguares", cex.sub = 1.5, font.sub = 3, col.sub = "#ffa500")
+
+plot(decomp_pumas, sub="Pumas")
+par(adj = 1)
+title(sub = "Pumas", cex.sub = 1.5, font.sub = 3, col.sub = "#13ED3F")
+```
+
+## Patron de distribucion de las especies {.tabset .tabset-fade}
+
+### Distribucion espacial de las especies por mes
 
 ```{r message=FALSE,warning=FALSE}
 e.m <- ggplot(wildcats, aes(x=Longitud, y=Latitud, frame=M.R, text = paste("Pais:", Pais))) +
@@ -388,33 +413,39 @@ ggplotly(e.m)%>%
 pd <- qplot(data = wildcats, x=Longitud, y=Latitud) +
   stat_ellipse(geom = "polygon", alpha = 1/2, aes(fill = Nombre_Comun, frame=M.R))+
   borders("world", xlim = c(-120, -30), ylim = c(-50, 25))+
-  geom_point(data=filter(wildcats), shape = 21, colour = cf2(wildcats$Nombre_Comun), size = 0.5, alpha=0.3)+
+  geom_point(data=filter(wildcats), aes(frame=M.R), shape = 21, fill = cf2(wildcats$Nombre_Comun), size = 2)+
   facet_grid(cols = vars(Nombre_Comun)) +
   labs(title = "Patron de Distribucion de las Especies")
 
-ggplotly(pd)
+ggplotly(pd)%>% 
+  animation_opts(
+    2000, easing = "elastic", redraw = FALSE
+  )%>%
+  animation_slider(
+    currentvalue = list(prefix = "Mes ", font = list(color="red"))
+  )
 ```
 
-
-## Analisis de densidad espacial de las especies {.tabset .tabset-fade}
 
 ### Densidad de cada una de las especies
 
 
 ```{r message=FALSE,warning=FALSE}
 dn <- ggplot(wildcats, aes(x=Longitud, y=Latitud)) +
-  stat_density2d(aes(fill = stat(level)), geom="polygon") +
   borders("world", regions=".", xlim = c(-120, -30), ylim = c(-50, 25))+
-  geom_point(data=filter(wildcats), shape = 21, colour = cf2(wildcats$Nombre_Comun), size = 0.5, alpha=0.3)+
+  stat_density2d(aes(fill = stat(level), frame=wildcats$M.R), geom="polygon", alpha=0.3)  +
+  geom_point(data=filter(wildcats), aes(frame=M.R), shape = 21, fill = cf2(wildcats$Nombre_Comun), size = 2, alpha=0.3)+
   facet_grid(cols = vars(Nombre_Comun)) +
   scale_fill_viridis_c(option = "viridis") +
   theme(legend.position = "magma") +
   labs(title = "Densidad segun distribucion por especie")
 
-ggplotly(dn)
+ggplotly(dn)%>% 
+  animation_opts(
+    4000, easing = "elastic", redraw = FALSE
+  )%>%
+  animation_slider(
+    currentvalue = list(prefix = "Mes ", font = list(color="red"))
+  )
 ```
-
-
-### Interpolacion
-
 
