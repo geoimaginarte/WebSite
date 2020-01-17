@@ -1,7 +1,7 @@
 ---
-title: "Avance II Proyecto Final del Curso DAT-004"
-author: "Jose Francisco Nuñez Obando"
-date: "8/1/2019"
+title: "Estadísticas espacio-temporales y analisis de Maxima Entropia de Jaguares y Pumas en Centro y Sudamerica"
+author: "Avance II Proyecto Final del Curso DAT-004 | Autor: Jose Francisco Nuñez Obando"
+date: "`r format(Sys.time(), '%d %B %Y')`"
 output:
   html_document:
     df_print: paged
@@ -50,10 +50,12 @@ A continuación, se exponen el tema a tratar en esta investigación, los objetiv
 
 ```{r message=FALSE,warning=FALSE}
 library(dplyr)
+library(tibble)
 library(tidyr)
 library(sp)
 library(DT)
 library(leaflet)
+library(leaflet.extras)
 library(raster)
 library(rasterVis)
 library(rgdal)
@@ -65,6 +67,13 @@ library(rasterVis)
 library(devtools)
 library(proto)
 library(highcharter)
+#MAXENT
+library(rgeos)
+library(velox)
+library(usdm)
+library(gtools)
+library(corrplot)
+library(Hmisc)
 ```
 
 # Procesos de extracción, transformación y carga de las Bases de datos
@@ -143,8 +152,9 @@ m <- leaflet(df) %>% addTiles(group = "OSM (default)") %>%
   addLayersControl(
     baseGroups = c("OSM (default)", "Toner", "Toner Lite"),
     overlayGroups = ndf$Nombre_Comun,
-    options = layersControlOptions(collapsed = TRUE)
-  )
+    options = layersControlOptions(collapsed = TRUE))%>%
+  suspendScroll()
+
 m
 ```
 
@@ -246,8 +256,8 @@ m2 <- leaflet(wildcats) %>% addTiles(group = "OSM (default)") %>%
   addLayersControl(
     baseGroups = c("OSM (default)", "Toner", "Toner Lite"),
     overlayGroups = wildcats$Nombre_Comun,
-    options = layersControlOptions(collapsed = TRUE)
-  )
+    options = layersControlOptions(collapsed = TRUE))%>%
+  suspendScroll()
 m2
 ```
 
@@ -280,10 +290,13 @@ datatable(wildcats, extensions = c('Buttons','FixedColumns', 'RowReorder'),
 
 # Resultados
 
-En este primer apartado se realizan analisis sobre estadísticas espacio-temporales respecto de los pumas y jaguares de un sector del continente americano 
-## Cantidad de especies segun pais{.tabset .tabset-fade}
+## Estadísticas espacio-temporales de las especies estudiadas 
 
-### Especies por pais y mes de observacion
+En este primer apartado se realizan analisis sobre estadísticas espacio-temporales respecto de los pumas y jaguares de un sector del continente americano
+
+### Cantidad de especies segun ubicacion y temporalidad {.tabset .tabset-fade}
+
+#### Especies por pais y mes de observacion 
 
 ```{r}
 plot_ly(x= wildcats$Pais,split=wildcats$Nombre_Comun, color= I(cf2(wildcats$Nombre_Comun)), 
@@ -291,7 +304,7 @@ plot_ly(x= wildcats$Pais,split=wildcats$Nombre_Comun, color= I(cf2(wildcats$Nomb
   layout(barmode = "overlay")
 ```
 
-### Cantidad de Jaguares por pais
+#### Cantidad de Jaguares por pais
 
 ```{r}
 c.jaguars <- wildcats%>%
@@ -322,7 +335,7 @@ highchart() %>%
   hc_mapNavigation(enabled = TRUE) 
 ```
 
-### Cantidad de Pumas por pais
+#### Cantidad de Pumas por pais
 
 ```{r}
 data(worldgeojson, package = "highcharter")
@@ -342,9 +355,9 @@ highchart() %>%
   hc_mapNavigation(enabled = TRUE) 
 ```
 
-## Cantidad de individuos observados en el tiempo {.tabset .tabset-fade}
+### Cantidad de individuos observados en el tiempo {.tabset .tabset-fade}
 
-### Especies por mes y año
+#### Especies por mes y año 
 
 
 ```{r}
@@ -373,7 +386,7 @@ highchart(type = "stock") %>%
   hc_yAxis(title= list(text='Cantidad de especies observadas'), opposite = FALSE)
 ```
 
-### Descomposicion y comportamiento de observaciones de los individuos en el tiempo
+#### Descomposicion y comportamiento de observaciones de los individuos en el tiempo
 
 ```{r}
 decomp_jaguars <- decompose(ct.jaguars[,2])
@@ -387,9 +400,9 @@ par(adj = 1)
 title(sub = "Pumas", cex.sub = 1.5, font.sub = 3, col.sub = "#13ED3F")
 ```
 
-## Patron de distribucion de las especies {.tabset .tabset-fade}
+### Patron de distribucion de las especies {.tabset .tabset-fade}
 
-### Distribucion espacial de las especies por mes
+#### Distribucion espacial de las especies por mes 
 
 ```{r message=FALSE,warning=FALSE}
 e.m <- ggplot(wildcats, aes(x=Longitud, y=Latitud, frame=M.R, text = paste("Pais:", Pais))) +
@@ -407,7 +420,7 @@ ggplotly(e.m)%>%
   )
 ```
 
-### Patron geometrico de distribucion
+#### Patron geometrico de distribucion
 
 ```{r message=FALSE,warning=FALSE}
 pd <- qplot(data = wildcats, x=Longitud, y=Latitud) +
@@ -427,7 +440,7 @@ ggplotly(pd)%>%
 ```
 
 
-### Densidad de cada una de las especies
+#### Densidad de cada una de las especies
 
 
 ```{r message=FALSE,warning=FALSE}
@@ -448,4 +461,50 @@ ggplotly(dn)%>%
     currentvalue = list(prefix = "Mes ", font = list(color="red"))
   )
 ```
+
+## Analisis de Maxima Entropia
+
+### Preparacion de datos para el analisis
+
+#### Union de los puntos de observacion de las especies y los raster de las variables ambientales
+```{r}
+#Se extraen valores de las variables
+jp_swd <- raster::extract(st, wildcats[,4:3]) %>% 
+  cbind(wildcats, .) %>% 
+  as.data.frame()
+
+#Se elimina las filas con valores nulos
+jp_swd <- na.omit(jp_swd) 
+```
+
+#### Analisis de correlacion de las variables ambientales
+
+```{r}
+mt <- cor(jp_swd[,11:24])
+corrplot(mt, method = 'circle', type = 'upper')
+```
+
+#### Conocer las variables que menos se relacionan entre si
+
+Esto se hace a traves del analisis en regresion lineal VIF, el cual es el factor de inflación de la varianza. Este cuantifica la intensidad de la multicolinealidad en un análisis de regresión normal de mínimos cuadrados. Proporciona un índice que mide hasta qué punto la varianza (el cuadrado de la desviación estándar estimada) de un coeficiente de regresión estimado se incrementa a causa de la colinealidad. 
+
+```{r}
+# Analisis VIF
+vif.res <- vif(x = jp_swd[,11:ncol(jp_swd)])
+vif.step <- vifstep(x = jp_swd[,11:ncol(jp_swd)], th = 10)#Los factores VIF mayores que 10 implican problemas graves de multicolinealidad
+vrs <- vif.step@results$Variables %>% as.character()
+vif.step
+vrs
+```
+
+#### Base de datos para realizar el analisis de maxima entropia
+
+```{r}
+jp_fnl <- jp_swd %>% 
+  as_tibble %>%  
+  dplyr::select(Nombre_Cientifico:Longitud, vrs)
+head(jp_fnl)
+```
+
+
 
