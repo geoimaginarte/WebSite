@@ -61,27 +61,30 @@ library(rasterVis)
 library(rgdal)
 library(ggplot2)
 library(plotly)
+library(LaCroixColoR)
 library(sf)
 library(here)
-library(rasterVis)
 library(devtools)
 library(proto)
 library(highcharter)
-#MAXENT
 library(rgeos)
 library(velox)
 library(usdm)
 library(gtools)
 library(corrplot)
 library(Hmisc)
+library(dismo)
+library(ENMeval)
 ```
 
 # Procesos de extracción, transformación y carga de las Bases de datos
 
-<p>En esta sección se realizan una serie de procesos que conllevan al desarrollo de las bases de datos finales. </p>
+En esta sección se realizan una serie de procesos que conllevan al desarrollo de las bases de datos finales
 
 
-## 1. Base de datos sobre felinos
+## Base de datos sobre felinos
+
+Carga de la base de datos y de las variables que la conforman
 
 ```{r}
 df <- read.csv("E:/Analista de datos/DAT004/Proyecto Final/Datasets/samples/wildcats_df.csv", stringsAsFactors=F, sep=",", na.strings=c("","NA"), encoding="UTF-8")
@@ -89,7 +92,7 @@ df <- read.csv("E:/Analista de datos/DAT004/Proyecto Final/Datasets/samples/wild
 colnames(df)
 ```
 
-### Cambio de nombre de las columnas
+Cambio de nombre de las columnas
 
 ```{r}
 df <- df[,c(1:5,7)]
@@ -104,9 +107,9 @@ names(df)[6] <- "Pais"
 colnames(df)
 ```
 
-### Resumen de datos por especie
+### Cantidad de registros en la base de datos
 
-#### Conteo inicial
+Se imprime un resumen de datos por especie de modo que se pueda obtener un conteo inicial
 
 ```{r}
 df%>%
@@ -114,7 +117,7 @@ df%>%
   dplyr::summarise(length(Nombre_Comun))
 ```
 
-#### Correccion de datos en la columna de "Nombre_Comun"
+Se realiza una correccion de datos en la columna de "Nombre_Comun" de forma que se estandaricen algunos registros que figuran como duplicados
 
 ```{r}
 ndf <- df%>%
@@ -122,21 +125,21 @@ ndf <- df%>%
   mutate(Nombre_Comun=ifelse(Nombre_Comun=="Puma de América del Sur", "Puma",Nombre_Comun))
 ```
 
-#### Resumen final de datos por especie
+Nuevamente se imprime un resumen final de datos por especie
 
 ```{r}
-ndf%>%
-  group_by(Nombre_Comun)%>%
-  summarise(length(Nombre_Comun))
+count_sp <- ndf%>%
+            group_by(Nombre_Comun)%>%
+            summarise(Count=length(Nombre_Comun))
+
+plot_ly(data=count_sp, x = ~Nombre_Comun, y = ~Count, type = 'bar', text = ~Count, textposition = 'auto',
+        marker = list(color = c('rgba(204,204,204,1)', 'rgba(222,45,38,0.8)'),
+                      line = list(color = c('rgba(204,204,204,1)', 'rgba(222,45,38,0.8)'),
+                                  width = 1.5))) %>%
+  layout(title = "Cantidad de especies registrados en el dataframe inicial",
+         xaxis = list(title = "Especies"),
+         yaxis = list(title = "Cantidad"))
 ```
-
-#### Limpieza de NA
-
-```{r}
-ndf <- ndf[complete.cases(ndf), ]
-  
-```
-
 
 ### Mapa de la distribicion de las especies a nivel mundial
 
@@ -159,13 +162,13 @@ m
 ```
 
 
-## 2. Bases de datos sobre variables ambientales del área de estudio
+## Bases de datos sobre variables ambientales del área de estudio
 
 El area de estudio con la que se pretende trabajar corresponde a Centro y Sudamrica, asi como el Caribe.
 
 Algunas de las coberturas que se utilizan para conocer el habitat de las especies son variables climáticas que se derivan de los datos proporcionados por el Panel Intergubernamental sobre Cambio Climático y se produjeron utilizando Interpolación de basada en lecturas tomadas en estaciones meteorológicas de todo el mundo desde 1961 hasta 1990.
 
-Los coverturas corresponden a:
+Los coberturas corresponden a:
 
 *cld6190_ann : cobertura de nubes, anual
 
@@ -191,6 +194,7 @@ Los coverturas corresponden a:
 
 *vap6190_ann : presion de vapor, anual
 
+### Datos Ambientales {.tabset .tabset-fade}
 
 ```{r}
 r_files <- list.files(here::here("Datasets", "coverages"),
@@ -198,6 +202,7 @@ r_files <- list.files(here::here("Datasets", "coverages"),
 r_files
 ```
 
+#### Ploteo de las variables ambientales
 
 ```{r message=FALSE, warning=FALSE}
 st <- raster::stack(r_files) 
@@ -213,7 +218,14 @@ raster::plot(ecoreg, main="Ecoregiones del area de estudio")
 raster::hist(ecoreg, main="Histograma de las Ecoregiones del area de estudio", col="green")
 ```
 
-#### Delimitacion del area de estudio
+#### Correlacion entre variables ambientales (nubes, precipitacion anual, temperatura media anual y presion de vapor)
+
+```{r}
+raster::pairs(st[[c(1,6,11,14)]])
+```
+
+
+## Delimitacion del area de estudio 
  
 A continuacion, se carga el un archivo espacial de tipo vectorial correspondiente a los paises que conforman el area de estudio.
 
@@ -221,7 +233,7 @@ A continuacion, se carga el un archivo espacial de tipo vectorial correspondient
 area_estudio <- sf::st_read(dsn="E:/Analista de datos/DAT004/Proyecto Final/Datasets/samples/map.geojson", layer="map", quiet=TRUE)
 ```
 
-Y procede a crear una visualizacion del mismo.
+#### Mapa de paises del area de estudio
 
 ```{r}
 map.area <- plot_geo(area_estudio, name=~pais, color = I("#89C5DA"))%>% hide_legend()
@@ -229,8 +241,9 @@ map.area <- plot_geo(area_estudio, name=~pais, color = I("#89C5DA"))%>% hide_leg
 map.area
 ```
 
+#### Mapeo de los ubicaciones registradas de las especies en el área de estudio
 
-## 3. Selección de la base de datos de las especies respecto del área de estudio
+De previo se realiza una selección de la base de datos de las especies respecto del área de estudio
 
 ```{r}
 coords <- data.frame(x=ndf$Longitud, y=ndf$Latitud)
@@ -241,8 +254,7 @@ wildcats <- data.frame(wildcats)
 wildcats <- wildcats[,1:6]
 ```
 
-
-### Mapeo de los ubicaciones registradas de las especies en el área de estudio
+Para luego visualizar los puntos de observacion de las especies a estudiar
 
 ```{r}
 cf2 <- colorFactor(c("#ffa500", "#13ED3F"), domain=wildcats$Nombre_Comun)
@@ -261,9 +273,10 @@ m2 <- leaflet(wildcats) %>% addTiles(group = "OSM (default)") %>%
 m2
 ```
 
-### Selección final de la base de datos 
+#### Visualizacion de la base de datos
 
-#### Inclusion de nuevas variables
+
+Primero se realiza una selección final de la base de datos e inclusion de nuevas variables
 
 ```{r}
 wildcats$Hora_Registro <- strftime(wildcats$Fecha_Registro, format="%H") #col7
@@ -275,8 +288,7 @@ wildcats$Y.R <- format(wildcats$Fecha_Registro, "%Y") #col10
 wildcats <- wildcats[, colnames(wildcats)[c(1:4,6,5,8,10,9,7)]] #Reorganizacion de las columnas
 ```
 
-
-#### Visualizacion de la base de datos
+Se procede a visualizar la base de datos
 
 ```{r}
 datatable(wildcats, extensions = c('Buttons','FixedColumns', 'RowReorder'),
@@ -462,14 +474,46 @@ ggplotly(dn)%>%
   )
 ```
 
+#### Especies segun ecoregion en la que se encuentran
+
+```{r}
+ecoreg_spec <- raster::extract(ecoreg, wildcats[,4:3]) %>% 
+  cbind(wildcats, .) %>% 
+  as.data.frame()
+
+ecoreg_spec <- na.omit(ecoreg_spec)
+
+ecoreg_spec$Ecoreg <- as.character(ecoreg_spec$.)
+
+ggplot(ecoreg_spec, aes(x=Longitud, y=Latitud, color = ecoreg_spec$Ecoreg)) +
+  borders("world", xlim = c(-120, -30), ylim = c(-50, 25))+
+  geom_point(data=filter(ecoreg_spec), shape = 21, size = 1)+
+  scale_colour_manual(values = lacroix_palette("PassionFruit", n=14))+
+  facet_grid(cols = vars(Nombre_Comun)) +
+  labs(title = "Especies observadas segun ecoregion en la que se encuentran")
+
+ggplot(ecoreg_spec, aes(y=Ecoreg, x=Nombre_Comun, colour = Ecoreg)) +
+  geom_count(alpha=0.5) +
+  scale_colour_manual(values = lacroix_palette("PassionFruit", n=14))+
+  labs(title = "Cantidad de especies observadas por ecoregion",
+       x = "Especie",
+       y = "Ecoregiones",
+       size = "")
+```
+
+
+
 ## Analisis de Maxima Entropia
 
 ### Preparacion de datos para el analisis
 
-#### Union de los puntos de observacion de las especies y los raster de las variables ambientales
+#### Analisis de correlacion de las variables ambientales
+
+Proceso de union de los puntos de observacion de las especies y los raster de las variables ambientales
 ```{r}
-#Se extraen valores de las variables
-jp_swd <- raster::extract(st, wildcats[,4:3]) %>% 
+#Se extraen temas relevantes de las variables ambientales
+select_r = dropLayer(st,3)
+jp_swd <- raster::extract(select_r, wildcats[,4:3]) %>% 
   cbind(wildcats, .) %>% 
   as.data.frame()
 
@@ -477,10 +521,10 @@ jp_swd <- raster::extract(st, wildcats[,4:3]) %>%
 jp_swd <- na.omit(jp_swd) 
 ```
 
-#### Analisis de correlacion de las variables ambientales
+Ploteo de la correlacion de variables
 
 ```{r}
-mt <- cor(jp_swd[,11:24])
+mt <- cor(jp_swd[,11:23])
 corrplot(mt, method = 'circle', type = 'upper')
 ```
 
@@ -506,5 +550,10 @@ jp_fnl <- jp_swd %>%
 head(jp_fnl)
 ```
 
+### Analisis de maxima entropia
+
+```{r}
+
+```
 
 
