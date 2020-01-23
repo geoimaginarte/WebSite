@@ -1,0 +1,684 @@
+---
+title: "Estadísticas espacio-temporales y Modelado de la distribución biogeográfica de Jaguares y Pumas en Centro y Sudamerica"
+author: "Autor: Jose Francisco Nuñez Obando | Posgrado Analista de Datos"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    df_print: paged
+    code_folding: hide
+    toc: yes
+    toc_float:
+      toc_collapsed: true
+    toc_depth: 3
+    number_sections: true
+    theme: lumen
+  pdf_document:
+    keep_tex: yes
+    number_sections: yes
+    toc: yes
+  word_document:
+    toc: yes
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Introducción
+
+El siguiente documento corresponde a un trabajo de investigación del curso Visualización de datos y análisis estadístico del Posgrado Analista de Datos de la Universidad Cenfotec.
+
+# Tema de investigación
+
+"Estadisticas y Modelado de la distribución biogeográfica de Pumas y Jaguares de un sector del continente americano"
+
+# Fuentes de datos
+
+<br>https://www.inaturalist.org/
+<br>https://biodiversityinformatics.amnh.org/
+
+# Objetivos
+
+<ul><li>1. Estadísticas espacio-temporales sobre los pumas y jaguares de un sector del continente americano, en las que se evalua: frecuencia de observaciones por mes, patrones de distribución dentro del area de estudio asi como densidad por especie.</li></ul>
+<ul><li>2.Analisis de correlacion con las variables ambientales en relacion la ocurrencia de las especies analizadas.</li></ul>
+<ul><li>3. Modelado de la distribución de los pumas y jaguares del área de estudio, segun las variables ambientales en la que estas especies se encuentran.</li></ul>
+
+# Librerias
+
+```{r message=FALSE,warning=FALSE}
+library(dplyr)
+library(tibble)
+library(tidyr)
+library(sp)
+library(DT)
+library(leaflet)
+library(leaflet.extras)
+library(raster)
+library(rasterVis)
+library(rgdal)
+library(ggplot2)
+library(plotly)
+library(LaCroixColoR)
+library(sf)
+library(here)
+library(devtools)
+library(proto)
+library(highcharter)
+library(rgeos)
+library(velox)
+library(usdm)
+library(gtools)
+library(corrplot)
+library(Hmisc)
+library(dismo)
+```
+
+# Procesos de extracción, transformación y carga de las Bases de datos
+
+En esta sección se realizan una serie de procesos que conllevan al desarrollo de las bases de datos finales
+
+
+## Base de datos sobre felinos
+
+Carga de la base de datos y de las variables que la conforman
+
+```{r}
+df <- read.csv("E:/Analista de datos/DAT004/Proyecto Final/Datasets/samples/wildcats_df.csv", stringsAsFactors=F, sep=",", na.strings=c("","NA"), encoding="UTF-8")
+
+colnames(df)
+```
+
+Cambio de nombre de las columnas
+
+```{r}
+df <- df[,c(1:5,7)]
+
+names(df)[1] <- "Nombre_Comun"
+names(df)[2] <- "Nombre_Cientifico"
+names(df)[3] <- "Latitud"
+names(df)[4] <- "Longitud"
+names(df)[5] <- "Fecha_Registro"
+names(df)[6] <- "Pais"
+
+colnames(df)
+```
+
+### Cantidad de registros en la base de datos
+
+Se imprime un resumen de datos por especie de modo que se pueda obtener un conteo inicial
+
+```{r}
+df%>%
+  dplyr::group_by(Nombre_Comun)%>%
+  dplyr::summarise(length(Nombre_Comun))
+```
+
+Se realiza una correccion de datos en la columna de "Nombre_Comun" de forma que se estandaricen algunos registros que figuran como duplicados
+
+```{r}
+ndf <- df%>%
+  mutate(Nombre_Comun=ifelse(Nombre_Comun=="Puma de América del Norte", "Puma",Nombre_Comun))%>%
+  mutate(Nombre_Comun=ifelse(Nombre_Comun=="Puma de América del Sur", "Puma",Nombre_Comun))
+```
+
+Nuevamente se imprime un resumen final de datos por especie
+
+```{r}
+count_sp <- ndf%>%
+            group_by(Nombre_Comun)%>%
+            summarise(Count=length(Nombre_Comun))
+
+plot_ly(data=count_sp, x = ~Nombre_Comun, y = ~Count, type = 'bar', text = ~Count, textposition = 'auto',
+        marker = list(color = c('rgba(204,204,204,1)', 'rgba(222,45,38,0.8)'),
+                      line = list(color = c('rgba(204,204,204,1)', 'rgba(222,45,38,0.8)'),
+                                  width = 1.5))) %>%
+  layout(title = "Cantidad de especies registrados en el dataframe inicial",
+         xaxis = list(title = "Especies"),
+         yaxis = list(title = "Cantidad"))
+```
+
+### Mapa de la distribicion de las especies a nivel mundial
+
+```{r}
+cf <- colorFactor(c("#ffa500", "#13ED3F"), domain=ndf$Nombre_Comun)
+m <- leaflet(df) %>% addTiles(group = "OSM (default)") %>%
+  addProviderTiles(providers$Stamen.Toner, group = "Toner") %>%
+  addProviderTiles(providers$Stamen.TonerLite, group = "Toner Lite") %>%
+  setView(-63.54105072, -8.88123188, zoom = 2) %>% 
+  addCircles(~Longitud, ~Latitud, popup=ndf$Nombre_Comun, group = ndf$Nombre_Comun ,weight = 3, radius=4, 
+              color=cf(ndf$Nombre_Comun), stroke = TRUE, fillOpacity = 0.5)  %>%
+  addLegend("bottomright", colors= c("#ffa500", "#13ED3F"), labels=c("Puma", "Jaguar"), title="Especies") %>% 
+  addLayersControl(
+    baseGroups = c("OSM (default)", "Toner", "Toner Lite"),
+    overlayGroups = ndf$Nombre_Comun,
+    options = layersControlOptions(collapsed = TRUE))%>%
+  suspendScroll()
+
+m
+```
+
+
+## Bases de datos sobre variables ambientales del área de estudio
+
+El area de estudio con la que se pretende trabajar corresponde a Centro y Sudamrica, asi como el Caribe.
+
+Algunas de las coberturas que se utilizan para conocer el habitat de las especies son variables climáticas que se derivan de los datos proporcionados por el Panel Intergubernamental sobre Cambio Climático y se produjeron utilizando Interpolación de basada en lecturas tomadas en estaciones meteorológicas de todo el mundo desde 1961 hasta 1990.
+
+Los coberturas corresponden a:
+
+*cld6190_ann : cobertura de nubes, anual
+
+*dtr6190_ann : rango de temperatura diurna, anual
+
+*ecoreg : Ecoregiones
+
+*frs6190_ann : frecuencia de heladas, anual
+
+*h_dem : Modelo Digital de Elevacion
+
+*pre6190_ann : precipitacion, anual
+
+*pre6190_I1 : precipitacion, enero
+
+*pre6190_I4 : precipitacion, abril
+
+*pre6190_I7 : precipitacion, julio
+
+*pre6190_I10 : precipitacion, octubre
+
+*tmn6190_ann : temperatura promedio, anual
+
+*tmp6190_ann : temperatura minima, anual
+
+*tmx6190_ann : temperatura maxima, anual
+
+*vap6190_ann : presion de vapor, anual
+
+### Datos Ambientales {.tabset .tabset-fade}
+
+```{r}
+r_files <- list.files(here::here("Datasets", "coverages"),
+                       full.names = T)
+r_files
+```
+
+#### Ploteo de las variables ambientales
+
+```{r message=FALSE, warning=FALSE}
+st <- raster::stack(r_files) 
+
+raster::plot(st)
+```
+
+#### Muestra de una de las variables ambientales: Ecoregiones
+
+1	Mediterranean Forests, Woodlands & Scrub
+2	Tropical & Subtropical Dry Broadleaf Forests
+3	Temperate Broadleaf & Mixed Forests
+4	Tropical & Subtropical Coniferous Forests
+5	Temperate Grasslands, Savannas & Shrublands
+6	Mangroves
+7	( )
+8	Montane Grasslands & Shrublands
+9	Tropical & Subtropical Grasslands, Savannas & Shrublands
+10	Tropical & Subtropical Moist Broadleaf Forests
+11	Flooded Grasslands & Savannas
+12	Montane Grasslands & Shrublands
+13	Magellanic subpolar forests
+14	Rock and Ice
+15	( )
+
+
+```{r message=FALSE,warning=FALSE}
+ecoreg = raster(r_files[3])
+raster::plot(ecoreg, main="Ecoregiones del area de estudio")
+raster::hist(ecoreg, main="Histograma de las Ecoregiones del area de estudio", col="green")
+```
+
+## Delimitacion del area de estudio 
+ 
+A continuacion, se carga el un archivo espacial de tipo vectorial correspondiente a los paises que conforman el area de estudio.
+
+```{r}
+area_estudio <- sf::st_read(dsn="E:/Analista de datos/DAT004/Proyecto Final/Datasets/samples/map.geojson", layer="map", quiet=TRUE)
+```
+
+#### Mapa de paises del area de estudio
+
+```{r}
+map.area <- plot_geo(area_estudio, name=~pais, color = I("#89C5DA"))%>% hide_legend()
+
+map.area
+```
+
+#### Mapeo de los ubicaciones registradas de las especies en el área de estudio
+
+De previo se realiza una selección de la base de datos de las especies respecto del área de estudio
+
+```{r}
+coords <- data.frame(x=ndf$Longitud, y=ndf$Latitud)
+prj <- CRS("+proj=longlat +datum=WGS84 +no_defs")
+points <- SpatialPointsDataFrame(coords, ndf, proj4string = prj)
+wildcats <- crop(points,ecoreg)
+wildcats <- data.frame(wildcats)
+wildcats <- wildcats[,1:6]
+```
+
+Para luego visualizar los puntos de observacion de las especies a estudiar
+
+```{r}
+cf2 <- colorFactor(c("#ffa500", "#13ED3F"), domain=wildcats$Nombre_Comun)
+m2 <- leaflet(wildcats) %>% addTiles(group = "OSM (default)") %>%
+  addProviderTiles(providers$Stamen.Toner, group = "Toner") %>%
+  addProviderTiles(providers$Stamen.TonerLite, group = "Toner Lite") %>%
+  setView(-63.54105072, -8.88123188, zoom = 2) %>% 
+  addCircles(~Longitud, ~Latitud, popup=wildcats$Nombre_Comun, group = wildcats$Nombre_Comun ,weight = 3, radius=4, 
+              color=cf2(wildcats$Nombre_Comun), stroke = TRUE, fillOpacity = 0.5)  %>%
+  addLegend("bottomright", colors= c("#ffa500", "#13ED3F"), labels=c("Puma", "Jaguar"), title="Especies") %>% 
+  addLayersControl(
+    baseGroups = c("OSM (default)", "Toner", "Toner Lite"),
+    overlayGroups = wildcats$Nombre_Comun,
+    options = layersControlOptions(collapsed = TRUE))%>%
+  suspendScroll()
+m2
+```
+
+#### Visualizacion de la base de datos
+
+
+Primero se realiza una selección final de la base de datos e inclusion de nuevas variables
+
+```{r}
+wildcats$Hora_Registro <- strftime(wildcats$Fecha_Registro, format="%H") #col7
+wildcats$Fecha_Registro <- as.POSIXct(wildcats$Fecha_Registro, tz="", format="%Y-%m-%d") #col5
+wildcats$Y.M.R <- strftime(wildcats$Fecha_Registro, format="%Y-%m") #col8
+wildcats$M.R <- format(wildcats$Fecha_Registro, "%m") #col9
+wildcats$Y.R <- format(wildcats$Fecha_Registro, "%Y") #col10
+
+wildcats <- wildcats[, colnames(wildcats)[c(1:4,6,5,8,10,9,7)]] #Reorganizacion de las columnas
+```
+
+Se procede a visualizar la base de datos
+
+```{r}
+datatable(wildcats, extensions = c('Buttons','FixedColumns', 'RowReorder'),
+  filter = list(position = 'top', clear = FALSE),
+  options = list(dom = 'Bfrtip',
+    buttons = c('copy', 'csv', 'excel', 'pdf', 'print'), dom = 't',
+    scrollX = TRUE,
+    fixedColumns = TRUE,
+    rowReorder = TRUE, order = list(c(0 , 'asc'))))
+```
+
+# Resultados
+
+## Estadísticas espacio-temporales de las especies estudiadas 
+
+En este primer apartado se realizan analisis sobre estadísticas espacio-temporales respecto de los pumas y jaguares de un sector del continente americano
+
+### Cantidad de especies segun ubicacion y temporalidad {.tabset .tabset-fade}
+
+#### Especies por pais y mes de observacion 
+
+```{r message=FALSE,warning=FALSE}
+plot_ly(x= wildcats$Pais,split=wildcats$Nombre_Comun, color= I(cf2(wildcats$Nombre_Comun)), 
+        frame=wildcats$M.R, type = "histogram", alpha = 0.6)%>%
+  layout(barmode = "overlay")
+```
+
+#### Cantidad de Jaguares por pais
+
+```{r}
+c.jaguars <- wildcats%>%
+              dplyr::filter(Nombre_Comun == "Jaguar")%>%
+              dplyr::group_by(Pais)%>%
+              dplyr::summarise(Cant=n())
+c.pumas <- wildcats%>%
+              dplyr::filter(Nombre_Comun == "Puma")%>%
+              dplyr::group_by(Pais)%>%
+              dplyr::summarise(Cant=n())
+```
+
+```{r}
+data(worldgeojson, package = "highcharter")
+
+highchart() %>% 
+  hc_title(text = "Cantidad de Jaguares") %>% 
+  hc_subtitle(text = "por pais") %>% 
+  hc_add_series_map(map = worldgeojson, df = c.jaguars, name = "cantidad de individuos",
+                    value = "Cant", joinBy = c("name", "Pais"), allAreas=FALSE, animation=TRUE)%>% 
+  hc_colorAxis(min= 1,
+            type='logarithmic',
+            stops = color_stops())%>% 
+  hc_tooltip(useHTML = TRUE, headerFormat = "",
+             pointFormat = "Pais: {point.name}/ Cantidad de especies: {point.Cant}")%>%
+  hc_legend(layout= 'horizontal',
+            verticalAlign= 'top')%>%
+  hc_mapNavigation(enabled = TRUE) 
+```
+
+#### Cantidad de Pumas por pais
+
+```{r}
+data(worldgeojson, package = "highcharter")
+
+highchart() %>% 
+  hc_title(text = "Cantidad de Pumas") %>% 
+  hc_subtitle(text = "por pais") %>% 
+  hc_add_series_map(map = worldgeojson, df = c.pumas, name = "cantidad de individuos",
+                    value = "Cant", joinBy = c("name", "Pais"), allAreas= FALSE, animation=TRUE)%>% 
+  hc_colorAxis(min= 1,
+            type='logarithmic',
+            stops = color_stops())%>% 
+  hc_tooltip(useHTML = TRUE, headerFormat = "",
+             pointFormat = "Pais: {point.name}/ Cantidad de especies: {point.Cant}")%>%
+  hc_legend(layout= 'horizontal',
+            verticalAlign= 'top')%>%
+  hc_mapNavigation(enabled = TRUE) 
+```
+
+### Cantidad de individuos observados en el tiempo {.tabset .tabset-fade}
+
+#### Especies por mes y año 
+
+
+```{r}
+c.jaguars <- wildcats%>%
+              dplyr::filter(Nombre_Comun == "Jaguar")%>%
+              dplyr::group_by(Fecha_Registro)%>%
+              dplyr::summarise(Cant=n())
+c.pumas <- wildcats%>%
+              dplyr::filter(Nombre_Comun == "Puma")%>%
+              dplyr::group_by(Fecha_Registro)%>%
+              dplyr::summarise(Cant=n())
+
+ct.jaguars <- ts(data=c.jaguars, start = c(2011,10), end = c(2019,12), frequency = 12)
+ct.pumas <- ts(data=c.pumas, start = c(2011,10), end = c(2019,12), frequency = 12)
+```
+
+
+
+```{r}
+highchart(type = "stock") %>% 
+  hc_title(text = "Cantidad de especies") %>% 
+  hc_subtitle(text = "en la linea de tiempo de observacion") %>% 
+  hc_add_series(ct.jaguars[,2], type = "line", pointInterval= 30*24*3600*1000, name="Cant de jaguares observados a la fecha", color = "#ffa500")%>%
+  hc_add_series(ct.pumas[,2], type = "line", pointInterval= 30*24*3600*1000, name="Cant de pumas observados a a fecha", color = "#13ED3F")%>%
+  hc_xAxis(title= list(text='Fechas'), type='datetime')%>%
+  hc_yAxis(title= list(text='Cantidad de especies observadas'), opposite = FALSE)
+```
+
+#### Descomposicion y comportamiento de observaciones de los individuos en el tiempo
+
+```{r}
+decomp_jaguars <- decompose(ct.jaguars[,2])
+decomp_pumas <- decompose(ct.pumas[,2])
+plot(decomp_jaguars)
+par(adj = 1)
+title(sub = "Jaguares", cex.sub = 1.5, font.sub = 3, col.sub = "#ffa500")
+
+plot(decomp_pumas, sub="Pumas")
+par(adj = 1)
+title(sub = "Pumas", cex.sub = 1.5, font.sub = 3, col.sub = "#13ED3F")
+```
+
+### Patron de distribucion de las especies {.tabset .tabset-fade}
+
+#### Distribucion espacial de las especies por mes 
+
+```{r message=FALSE,warning=FALSE}
+e.m <- ggplot(wildcats, aes(x=Longitud, y=Latitud, frame=M.R, text = paste("Pais:", Pais))) +
+  borders("world", xlim = c(-120, -30), ylim = c(-50, 25))+
+  geom_point(data=filter(wildcats), shape = 21, colour = cf2(wildcats$Nombre_Comun), size = 1)+
+  facet_grid(cols = vars(Nombre_Comun)) +
+  labs(title = "Distribucion de las especies observadas segun mes")
+
+ggplotly(e.m)%>% 
+  animation_opts(
+    2000, easing = "elastic", redraw = FALSE
+  )%>%
+  animation_slider(
+    currentvalue = list(prefix = "Mes ", font = list(color="red"))
+  )
+```
+
+#### Patron geometrico de distribucion
+
+```{r message=FALSE,warning=FALSE}
+pd <- qplot(data = wildcats, x=Longitud, y=Latitud) +
+  stat_ellipse(geom = "polygon", alpha = 1/2, aes(fill = Nombre_Comun, frame=M.R))+
+  borders("world", xlim = c(-120, -30), ylim = c(-50, 25))+
+  geom_point(data=filter(wildcats), aes(frame=M.R), shape = 21, fill = cf2(wildcats$Nombre_Comun), size = 2)+
+  facet_grid(cols = vars(Nombre_Comun)) +
+  labs(title = "Patron de Distribucion de las Especies")
+
+ggplotly(pd)%>% 
+  animation_opts(
+    2000, easing = "elastic", redraw = FALSE
+  )%>%
+  animation_slider(
+    currentvalue = list(prefix = "Mes ", font = list(color="red"))
+  )
+```
+
+
+#### Densidad de cada una de las especies
+
+
+```{r message=FALSE,warning=FALSE}
+dn <- ggplot(wildcats, aes(x=Longitud, y=Latitud)) +
+  borders("world", regions=".", xlim = c(-120, -30), ylim = c(-50, 25))+
+  stat_density2d(aes(fill = stat(level), frame=wildcats$M.R), geom="polygon", alpha=0.3)  +
+  geom_point(data=filter(wildcats), aes(frame=M.R), shape = 21, fill = cf2(wildcats$Nombre_Comun), size = 2, alpha=0.3)+
+  facet_grid(cols = vars(Nombre_Comun)) +
+  scale_fill_viridis_c(option = "viridis") +
+  theme(legend.position = "magma") +
+  labs(title = "Densidad segun distribucion por especie")
+
+ggplotly(dn)%>% 
+  animation_opts(
+    4000, easing = "elastic", redraw = FALSE
+  )%>%
+  animation_slider(
+    currentvalue = list(prefix = "Mes ", font = list(color="red"))
+  )
+```
+
+#### Especies segun ecoregion en la que se encuentran
+
+Ecoregiones/Biomas
+1	Mediterranean Forests, Woodlands & Scrub
+2	Tropical & Subtropical Dry Broadleaf Forests
+3	Temperate Broadleaf & Mixed Forests
+4	Tropical & Subtropical Coniferous Forests
+5	Temperate Grasslands, Savannas & Shrublands
+6	Mangroves
+7	( )
+8	Montane Grasslands & Shrublands
+9	Tropical & Subtropical Grasslands, Savannas & Shrublands
+10	Tropical & Subtropical Moist Broadleaf Forests
+11	Flooded Grasslands & Savannas
+12	Montane Grasslands & Shrublands
+13	Magellanic subpolar forests
+14	Rock and Ice
+15	( )
+
+```{r}
+ecoreg_spec <- raster::extract(ecoreg, wildcats[,4:3]) %>% 
+  cbind(wildcats, .) %>% 
+  as.data.frame()
+
+ecoreg_spec <- na.omit(ecoreg_spec)
+
+ecoreg_spec$Ecoreg <- as.character(ecoreg_spec$.)
+
+ggplot(ecoreg_spec, aes(x=Longitud, y=Latitud, color = ecoreg_spec$Ecoreg)) +
+  borders("world", xlim = c(-120, -30), ylim = c(-50, 25))+
+  geom_point(data=filter(ecoreg_spec), shape = 21, size = 1)+
+  scale_colour_manual(values = lacroix_palette("PassionFruit", n=14))+
+  facet_grid(cols = vars(Nombre_Comun)) +
+  labs(title = "Especies observadas segun ecoregion en la que se encuentran")
+
+ggplot(ecoreg_spec, aes(y=Ecoreg, x=Nombre_Comun, colour = Ecoreg)) +
+  geom_count(alpha=0.5) +
+  scale_colour_manual(values = lacroix_palette("PassionFruit", n=14))+
+  labs(title = "Cantidad de especies observadas por ecoregion",
+       x = "Especie",
+       y = "Ecoregiones",
+       size = "")
+```
+
+
+## Analisis de correlacion con las variables ambientales
+
+Proceso de union de los puntos de observacion de las especies y los raster de las variables ambientales
+```{r}
+#Se extraen temas relevantes de las variables ambientales
+select_r = dropLayer(st,3)
+jp_swd <- raster::extract(select_r, wildcats[,4:3]) %>% 
+  cbind(wildcats, .) %>% 
+  as.data.frame()
+
+#Se elimina las filas con valores nulos
+jp_swd <- na.omit(jp_swd) 
+```
+
+### Ploteo de la correlacion de variables
+
+```{r}
+mt <- cor(jp_swd[,11:23])
+corrplot(mt, method = 'circle', type = 'upper')
+```
+
+### Variables que menos se relacionan entre si
+
+Esto se hace a traves del analisis en regresion lineal VIF, el cual es el factor de inflación de la varianza. Este cuantifica la intensidad de la multicolinealidad en un análisis de regresión normal de mínimos cuadrados. Proporciona un índice que mide hasta qué punto la varianza (el cuadrado de la desviación estándar estimada) de un coeficiente de regresión estimado se incrementa a causa de la colinealidad. 
+
+```{r}
+# Analisis VIF
+vif.res <- vif(x = jp_swd[,11:ncol(jp_swd)])
+vif.step <- vifstep(x = jp_swd[,11:ncol(jp_swd)], th = 10)#Los factores VIF mayores que 10 implican problemas graves de multicolinealidad
+vrs <- vif.step@results$Variables %>% as.character()
+vif.step
+vrs
+```
+
+### Base de datos y variables con multicolinealidad
+
+```{r}
+jp_fnl <- jp_swd %>% 
+  as_tibble %>%  
+  dplyr::select(Nombre_Cientifico:Longitud, vrs)
+head(jp_fnl)
+```
+
+### Correlacion entre variables ambientales con multicolinealidad
+
+Con respecto al resultado de la correlacion se grafican las siguientes variables:
+
+  *cld6190_ann : cobertura de nubes, anual
+  
+  *dtr6190_ann : rango de temperatura diurna, anual
+  
+  *frs6190_ann : frecuencia de heladas, anual
+  
+  *h_dem : Modelo Digital de Elevacion
+  
+  *pre6190_I1 : precipitacion, enero
+  
+  *pre6190_I4 : precipitacion, abril
+  
+  *pre6190_I7 : precipitacion, julio
+  
+  *pre6190_I10 : precipitacion, octubre
+  
+  *vap6190_ann : presion de vapor, anual)
+
+```{r}
+r_corr= st[[c(1,2,4,5,7,8,9,10,14)]]
+raster::pairs(r_corr)
+```
+
+## Modelado de distribucion de especies
+
+El primer paso es extraer los valores de los predictores en las ubicaciones de los puntos
+
+```{r message=FALSE,warning=FALSE}
+pvals <- raster::extract(st, wildcats[,4:3]) %>% 
+                          cbind(wildcats, .) %>% 
+                          as.data.frame()
+presvals <- pvals[,11:24]
+predictors <- st
+
+backgr <- randomPoints(predictors, 500)
+absvals <- raster::extract(predictors, backgr)
+pb <- c(rep(1, nrow(presvals)), rep(0, nrow(absvals)))
+sdmdata <- data.frame(cbind(pb, rbind(presvals, absvals)))
+sdmdata[,'ecoreg'] = as.factor(sdmdata[,'ecoreg'])
+head(sdmdata)
+tail(sdmdata)
+summary(sdmdata)
+```
+
+### Ajuste del modelo
+
+Para ello se utiliza la función (glm) la cual permite ajustar modelos lineales generalizados. Esta funcion devuelve un objeto modelo.
+
+En un primer modelo se trabajara con: 
+
+*tmn6190_ann : temperatura promedio, anual
+*tmx6190_ann : temperatura maxima, anual
+*pre6190_ann : precipitacion, anual
+
+En el segundo con todas las variables
+
+```{r}
+m1 <- glm ( pb ~ tmn6190_ann + tmx6190_ann + pre6190_ann , data = sdmdata )
+class ( m1 )
+summary ( m1 )
+m2 = glm ( pb ~ . , data = sdmdata )
+m2
+```
+
+### Modelado de envoltura climática
+
+El algoritmo BIOCLIM calcula la similitud de una ubicación comparando los valores de las variables ambientales en cualquier ubicación con una distribución porcentual de los valores en ubicaciones conocidas de ocurrencia. Cuanto más cerca del percentil 50 (la mediana), más adecuada es la ubicación. Las colas de la distribución no se distinguen, es decir, el percentil 10 se trata como equivalente al percentil 90.
+
+Para este caso solo se usa datos de presencia, por lo que usamos 'presvals' en lugar de 'sdmdata'.
+
+```{r}
+bc <- bioclim ( presvals [, c ( 'tmn6190_ann', 'tmx6190_ann', 'pre6190_ann' )])
+class ( bc )
+bc
+pairs ( bc )
+```
+
+### Predicción del modelo {.tabset .tabset-fade}
+
+A continuación, se realizan predicciones con el objeto del modelo glm 'm1' y para el modelo bioclim 'bc', para tres registros con valores para las variables *tmn6190_ann : temperatura promedio, anual; tmx6190_ann : temperatura maxima, anual; pre6190_ann : precipitacion, anual
+
+```{r}
+tmn6190_ann = c ( 50 , 150 , 200 )
+tmx6190_ann = c ( 150 , 250 , 350 )
+pre6190_ann = c ( 20 , 60 , 100 )
+pdt = data.frame ( cbind (tmn6190_ann, tmx6190_ann, pre6190_ann))
+pdt
+predict (m1 , pdt)
+predict (bc , pdt)
+```
+
+#### Graficos de respuesta para cada variable
+
+```{r}
+response (bc)
+```
+
+#### Mapa de puntajes de idoneidad
+
+En el espectro de colores del mapa se observan los valores mas altos como aquellos donde es idoneo encontrar estas especies, al contrario en el espectro, donde es menos idoneo
+
+```{r}
+p <- predict (predictors,m1)
+plot (p)
+```
+
