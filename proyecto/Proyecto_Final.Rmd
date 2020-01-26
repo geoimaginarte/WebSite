@@ -5,19 +5,13 @@ date: "`r format(Sys.time(), '%d %B %Y')`"
 output:
   html_document:
     df_print: paged
-    code_folding: hide
+    code_folding: show
     toc: yes
     toc_float:
       toc_collapsed: true
     toc_depth: 3
     number_sections: true
     theme: lumen
-  pdf_document:
-    keep_tex: yes
-    number_sections: yes
-    toc: yes
-  word_document:
-    toc: yes
 ---
 
 ```{r setup, include=FALSE}
@@ -626,14 +620,28 @@ Para ello se utiliza la función (glm) la cual permite ajustar modelos lineales 
 
 En un primer modelo se trabajara con: 
 
-*tmn6190_ann : temperatura promedio, anual
-*tmx6190_ann : temperatura maxima, anual
-*pre6190_ann : precipitacion, anual
+  *cld6190_ann : cobertura de nubes, anual
+  
+  *dtr6190_ann : rango de temperatura diurna, anual
+  
+  *frs6190_ann : frecuencia de heladas, anual
+  
+  *h_dem : Modelo Digital de Elevacion
+  
+  *pre6190_I1 : precipitacion, enero
+  
+  *pre6190_I4 : precipitacion, abril
+  
+  *pre6190_I7 : precipitacion, julio
+  
+  *pre6190_I10 : precipitacion, octubre
+  
+  *vap6190_ann : presion de vapor, anual)
 
 En el segundo con todas las variables
 
 ```{r}
-m1 <- glm ( pb ~ tmn6190_ann + tmx6190_ann + pre6190_ann , data = sdmdata )
+m1 <- glm ( pb ~ cld6190_ann +	dtr6190_ann	+	frs6190_ann + h_dem	+ pre6190_l1 + pre6190_l10 + pre6190_l4 + pre6190_l7 + vap6190_ann, data = sdmdata )
 class ( m1 )
 summary ( m1 )
 m2 = glm ( pb ~ . , data = sdmdata )
@@ -647,7 +655,7 @@ El algoritmo BIOCLIM calcula la similitud de una ubicación comparando los valor
 Para este caso solo se usa datos de presencia, por lo que usamos 'presvals' en lugar de 'sdmdata'.
 
 ```{r}
-bc <- bioclim ( presvals [, c ( 'tmn6190_ann', 'tmx6190_ann', 'pre6190_ann' )])
+bc <- bioclim ( presvals [, c ( 'cld6190_ann',	'dtr6190_ann',	'frs6190_ann', 'h_dem', 'pre6190_l1', 'pre6190_l10', 'pre6190_l4', 'pre6190_l7', 'vap6190_ann' )])
 class ( bc )
 bc
 pairs ( bc )
@@ -655,15 +663,23 @@ pairs ( bc )
 
 ### Predicción del modelo {.tabset .tabset-fade}
 
-A continuación, se realizan predicciones con el objeto del modelo glm 'm1' y para el modelo bioclim 'bc', para tres registros con valores para las variables *tmn6190_ann : temperatura promedio, anual; tmx6190_ann : temperatura maxima, anual; pre6190_ann : precipitacion, anual
+Todos estos objetos "modelo", independientemente de su clase exacta, pueden utilizarse con la función de predicción para hacer predicciones para cualquier combinación de valores de las variables independientes. Hacer tales predicciones para algunos entornos puede ser muy útil para explorar y comprender las predicciones del modelo.
+A continuación, se realizan predicciones con el objeto del modelo glm 'm1' y para el modelo bioclim 'bc', para tres registros con valores para las variables: cld6190_ann, dtr6190_ann, frs6190_ann, h_dem, pre6190_l1, pre6190_l10, pre6190_l4, pre6190_l7, vap6190_ann
 
 ```{r}
-tmn6190_ann = c ( 50 , 150 , 200 )
-tmx6190_ann = c ( 150 , 250 , 350 )
-pre6190_ann = c ( 20 , 60 , 100 )
-pdt = data.frame ( cbind (tmn6190_ann, tmx6190_ann, pre6190_ann))
+cld6190_ann = c(40, 60, 80)
+dtr6190_ann = c(40, 100, 140)
+frs6190_ann = c(50, 125, 200)
+h_dem = c(1000, 3000, 6000)
+pre6190_l1 = c(50, 100, 150)
+pre6190_l10 = c(50, 100, 150)
+pre6190_l4 = c(50, 100, 150)
+pre6190_l7 = c(50, 100, 150)
+vap6190_ann = c(50, 100, 250)
+
+pdt = data.frame ( cbind (cld6190_ann, dtr6190_ann, frs6190_ann,  h_dem, pre6190_l1, pre6190_l10, pre6190_l4, pre6190_l7, vap6190_ann))
 pdt
-predict (m1 , pdt)
+predict (m1 , pdt) #categorias de prediccion= 1: menos frecuente encontrar especies, 3: mas frecuente encontrar especies
 predict (bc , pdt)
 ```
 
