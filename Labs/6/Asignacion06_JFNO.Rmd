@@ -1,0 +1,123 @@
+---
+title: "Asignacion06"
+author: "Jose Francisco Nuñez Obando"
+date: "`r format(Sys.time(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: yes
+    toc_float:
+      toc_collapsed: true
+    toc_depth: 3
+    number_sections: true
+    theme: lumen
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Nivel de confianza y significancia
+
+## Librerias
+
+```{r message=FALSE, warning=FALSE}
+library(dplyr)
+library(Rmisc)
+```
+
+## Carga del conjunto de datos suministrado
+
+```{r}
+set.seed(123)
+
+xyz <- round(runif(n=1000, min=1, max=1000))
+mydata <- as.data.frame(xyz)
+
+#Calculo de la media del conjunto de datos para la variable XYZ
+media_pob <- mean(mydata$xyz)
+paste0("La media poblacional es: ", media_pob)
+
+plot(1:1000, mydata$xyz)%>%
+  abline(h=media_pob, col="red")
+  
+hist(mydata$xyz)%>%
+  abline(v=media_pob, col="red")
+```
+
+
+## Generacion de una muestra de tamaño 50 del conjunto de datos
+
+```{r}
+set.seed(123)
+
+muestra1 <- sample_n(tbl=mydata, size=50, replace =TRUE)
+head(muestra1)
+media_n1 <- mean(muestra1$xyz)
+media_n1
+```
+
+## Comparacion de las medias
+
+```{r}
+paste0("Media poblacional (", media_pob, ") vs Media de la muestra (", media_n1, ")")
+```
+
+## Intervalo de confianza
+
+```{r message=FALSE}
+i_c <- rbind(CI(muestra1$xyz, ci=0.90))
+l_sup <- i_c[,1]
+l_inf <- i_c[,3]
+
+paste0("Limite inferior (", l_inf, "), limite superior (", l_sup, ")")
+```
+
+## Grafica de los limites
+
+```{r}
+plot(l_sup)
+points(l_inf)
+segments(x0=1, y0=l_sup, x1=1, y1=l_inf, col = "blue")
+abline(h=media_pob, col="red")
+```
+
+El limite inferior se encuetra significativamente de la media
+
+## Muestras aleatorias
+
+Genere ahora 100 muestras aleatorias de tamaño n=50
+y a cada una determine su intervalo de confianza (sugerencia: ideal crear una variable que almacene limites inferiores del intervalo de confianza y otra que almacene los limites superiores). Represente gráficamente todos los intervalos generados, así como el valor de la media poblacional μ
+El resultado debe ser similar al de la siguiente imagen:
+
+
+```{r}
+set.seed(123)
+
+M2 <- as.data.frame(replicate(100, sample_n(tbl=mydata, size=50)))
+
+t <- matrix(NA, nrow = dim(M2)[2], ncol = 2)
+for (i in 1:dim(M2)[2]) {
+    tp <- t.test(M2[, i], conf.level = 0.9)
+    t[i, ] <- tp$conf.int
+}
+colnames(t) <- c("lcl", "ucl")
+
+```
+
+
+```{r}
+width <- apply(t, 1, diff)
+t <- cbind(t, width)
+t <- data.frame(t)
+head(t)
+```
+
+
+```{r}
+plot(70,media_pob)
+points(t$ucl, col="green")
+points(t$lcl, col="red")
+segments(x0=as.numeric(rownames(t)), y0=t$ucl, x1=as.numeric(rownames(t)), y1=t$lcl, col = "blue")
+abline(h=media_pob, col="red")
+```
+
