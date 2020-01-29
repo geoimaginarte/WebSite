@@ -5,7 +5,7 @@ date: "`r format(Sys.time(), '%d %B %Y')`"
 output:
   html_document:
     df_print: paged
-    code_folding: show
+    code_folding: hide
     toc: yes
     toc_float:
       toc_collapsed: true
@@ -34,7 +34,7 @@ El siguiente documento corresponde a un trabajo de investigación del curso Visu
 # Objetivos
 
 <ul><li>1. Estadísticas espacio-temporales sobre los pumas y jaguares de un sector del continente americano, en las que se evalua: frecuencia de observaciones por mes, patrones de distribución dentro del area de estudio asi como densidad por especie.</li></ul>
-<ul><li>2.Analisis de correlacion con las variables ambientales en relacion la ocurrencia de las especies analizadas.</li></ul>
+<ul><li>2. Analisis de correlacion con las variables ambientales en relacion la ocurrencia de las especies analizadas.</li></ul>
 <ul><li>3. Modelado de la distribución de los pumas y jaguares del área de estudio, segun las variables ambientales en la que estas especies se encuentran.</li></ul>
 
 # Librerias
@@ -115,7 +115,7 @@ ndf <- df%>%
   mutate(Nombre_Comun=ifelse(Nombre_Comun=="Puma de América del Sur", "Puma",Nombre_Comun))
 ```
 
-Nuevamente se imprime un resumen final de datos por especie
+Y por ultimo se grafica un resumen final de datos por especie
 
 ```{r}
 count_sp <- ndf%>%
@@ -132,6 +132,8 @@ plot_ly(data=count_sp, x = ~Nombre_Comun, y = ~Count, type = 'bar', text = ~Coun
 ```
 
 ### Mapa de la distribicion de las especies a nivel mundial
+
+En el siguiente mapa se imprime, en la figura de puntos, la totalidad de los datos
 
 ```{r}
 cf <- colorFactor(c("#ffa500", "#13ED3F"), domain=ndf$Nombre_Comun)
@@ -188,6 +190,7 @@ Los coberturas corresponden a:
 
 *vap6190_ann : presion de vapor, anual
 
+
 ### Datos Ambientales {.tabset .tabset-fade}
 
 ```{r}
@@ -198,6 +201,8 @@ r_files
 
 #### Ploteo de las variables ambientales
 
+Se grafican los raster que representan las variables ambientales con las que se utilizaran en el modelado de distribucion
+
 ```{r message=FALSE, warning=FALSE}
 st <- raster::stack(r_files) 
 
@@ -206,21 +211,23 @@ raster::plot(st)
 
 #### Muestra de una de las variables ambientales: Ecoregiones
 
-1	Mediterranean Forests, Woodlands & Scrub
-2	Tropical & Subtropical Dry Broadleaf Forests
-3	Temperate Broadleaf & Mixed Forests
-4	Tropical & Subtropical Coniferous Forests
-5	Temperate Grasslands, Savannas & Shrublands
-6	Mangroves
-7	( )
-8	Montane Grasslands & Shrublands
-9	Tropical & Subtropical Grasslands, Savannas & Shrublands
-10	Tropical & Subtropical Moist Broadleaf Forests
-11	Flooded Grasslands & Savannas
-12	Montane Grasslands & Shrublands
-13	Magellanic subpolar forests
-14	Rock and Ice
-15	( )
+La variable ejemplicada, ecoregion, posee las siguientes categorias:
+
+1: Mediterranean Forests, Woodlands & Scrub
+2: Tropical & Subtropical Dry Broadleaf Forests
+3: Temperate Broadleaf & Mixed Forests
+4: Tropical & Subtropical Coniferous Forests
+5: Temperate Grasslands, Savannas & Shrublands
+6: Mangroves
+7: ( )
+8: Montane Grasslands & Shrublands
+9: Tropical & Subtropical Grasslands, Savannas & Shrublands
+10: Tropical & Subtropical Moist Broadleaf Forests
+11: Flooded Grasslands & Savannas
+12: Montane Grasslands & Shrublands
+13: Magellanic subpolar forests
+14: Rock and Ice
+15: ( )
 
 
 ```{r message=FALSE,warning=FALSE}
@@ -239,8 +246,11 @@ area_estudio <- sf::st_read(dsn="E:/Analista de datos/DAT004/Proyecto Final/Data
 
 #### Mapa de paises del area de estudio
 
+En el siguiente mapa se muestra los paises que conforman el area de estudio
+
 ```{r}
-map.area <- plot_geo(area_estudio, name=~pais, color = I("#89C5DA"))%>% hide_legend()
+map.area <- plot_geo(area_estudio, name=~pais, color = I("#89C5DA"))%>% hide_legend()%>%
+  layout(title = "Mapa paises que conforman el area de estudio")
 
 map.area
 ```
@@ -258,7 +268,7 @@ wildcats <- data.frame(wildcats)
 wildcats <- wildcats[,1:6]
 ```
 
-Para luego visualizar los puntos de observacion de las especies a estudiar
+Para luego visualizar en un mapa dinamico los puntos de observacion de las especies a estudiar
 
 ```{r}
 cf2 <- colorFactor(c("#ffa500", "#13ED3F"), domain=wildcats$Nombre_Comun)
@@ -279,8 +289,7 @@ m2
 
 #### Visualizacion de la base de datos
 
-
-Primero se realiza una selección final de la base de datos e inclusion de nuevas variables
+Primero se realiza una inclusion de nuevas variables relacionadas con el tema de temporalidad
 
 ```{r}
 wildcats$Hora_Registro <- strftime(wildcats$Fecha_Registro, format="%H") #col7
@@ -292,7 +301,7 @@ wildcats$Y.R <- format(wildcats$Fecha_Registro, "%Y") #col10
 wildcats <- wildcats[, colnames(wildcats)[c(1:4,6,5,8,10,9,7)]] #Reorganizacion de las columnas
 ```
 
-Se procede a visualizar la base de datos
+y posteriormente se procede a visualizar la base de datos final
 
 ```{r}
 datatable(wildcats, extensions = c('Buttons','FixedColumns', 'RowReorder'),
@@ -312,15 +321,24 @@ En este primer apartado se realizan analisis sobre estadísticas espacio-tempora
 
 ### Cantidad de especies segun ubicacion y temporalidad {.tabset .tabset-fade}
 
+En los siguientes graficos se visualizan cantidad de especies por pais
+
 #### Especies por pais y mes de observacion 
 
+En esta primera grafica de este subapartado, se muestra la cantidad por pais en relacion con el mes en que las observaciones ocurrieron
+
 ```{r message=FALSE,warning=FALSE}
-plot_ly(x= wildcats$Pais,split=wildcats$Nombre_Comun, color= I(cf2(wildcats$Nombre_Comun)), 
+p_m <- plot_ly(data=wildcats, x= ~Pais, split= ~Nombre_Comun, color= I(cf2(wildcats$Nombre_Comun)), 
         frame=wildcats$M.R, type = "histogram", alpha = 0.6)%>%
-  layout(barmode = "overlay")
+        layout(barmode = "overlay", title = "Cant de especies por pais y mes de observacion")
+p_m%>%animation_opts(frame= 2000, redraw = TRUE)%>%
+        animation_slider(currentvalue = list(prefix = "Mes ", font = list(color="red")))
+
 ```
 
 #### Cantidad de Jaguares por pais
+
+Para poder representar la cantidad de especies por pais se realiza un preseleccion del dato por especie
 
 ```{r}
 c.jaguars <- wildcats%>%
@@ -332,6 +350,8 @@ c.pumas <- wildcats%>%
               dplyr::group_by(Pais)%>%
               dplyr::summarise(Cant=n())
 ```
+
+Y posteriormente se procede a graficar la informacion primero de jaguares
 
 ```{r}
 data(worldgeojson, package = "highcharter")
@@ -353,6 +373,8 @@ highchart() %>%
 
 #### Cantidad de Pumas por pais
 
+Y posteriormente de pumas
+
 ```{r}
 data(worldgeojson, package = "highcharter")
 
@@ -373,8 +395,11 @@ highchart() %>%
 
 ### Cantidad de individuos observados en el tiempo {.tabset .tabset-fade}
 
+En este subapartado, se analizan cantidades de las especies observados en relacion a la temporalida de las observaciones
+
 #### Especies por mes y año 
 
+Al igual como se hizo en un punto anterior, para poder representar la cantidad de especies segun periodo de observacion, se realiza un preseleccion del dato por especie
 
 ```{r}
 c.jaguars <- wildcats%>%
@@ -390,7 +415,7 @@ ct.jaguars <- ts(data=c.jaguars, start = c(2011,10), end = c(2019,12), frequency
 ct.pumas <- ts(data=c.pumas, start = c(2011,10), end = c(2019,12), frequency = 12)
 ```
 
-
+Y se grafica posteriormente una serie de tiempo en una linea de cantidades de especies observadas
 
 ```{r}
 highchart(type = "stock") %>% 
@@ -403,6 +428,8 @@ highchart(type = "stock") %>%
 ```
 
 #### Descomposicion y comportamiento de observaciones de los individuos en el tiempo
+
+Asi mismo, se realiza una descomposicion de la serie de tiempo para observar el comportamiento de la linea temporal segun la observada, la tendencia, la estacional y la aleatoria.
 
 ```{r}
 decomp_jaguars <- decompose(ct.jaguars[,2])
@@ -418,7 +445,11 @@ title(sub = "Pumas", cex.sub = 1.5, font.sub = 3, col.sub = "#13ED3F")
 
 ### Patron de distribucion de las especies {.tabset .tabset-fade}
 
-#### Distribucion espacial de las especies por mes 
+En este apartado se analizan la ubicacion de las especies observadas en terminos distribucion, densidad por espacio ocupado (agrupamiento), ademas de su ubicacion con relacion a la ecoregion que ocupan.
+
+#### Distribucion espacial de las especies por mes
+
+En estos primeros mapas se visualiza la correspondiente ubicacion de los individuos de las diferentes especies, asi como la dinamica de emplazamiento en relacion al mes en que se observaron
 
 ```{r message=FALSE,warning=FALSE}
 e.m <- ggplot(wildcats, aes(x=Longitud, y=Latitud, frame=M.R, text = paste("Pais:", Pais))) +
@@ -438,6 +469,8 @@ ggplotly(e.m)%>%
 
 #### Patron geometrico de distribucion
 
+Al igual que los anteriores mapas de este subapartado, se se visualiza la correspondiente ubicacion de los individuos de las diferentes especies, haciendo referencia al patron de distribucion eliptico que estos individuos siguen en la dinamica de emplazamiento respecto del mes en que se observaron
+
 ```{r message=FALSE,warning=FALSE}
 pd <- qplot(data = wildcats, x=Longitud, y=Latitud) +
   stat_ellipse(geom = "polygon", alpha = 1/2, aes(fill = Nombre_Comun, frame=M.R))+
@@ -455,9 +488,9 @@ ggplotly(pd)%>%
   )
 ```
 
-
 #### Densidad de cada una de las especies
 
+En este par de mapas sobre cada especie estudiada, se visualiza el nivel de densidad que muestra el emplazamiento de los individuos en los diferentes meses en que estos fueron observaron
 
 ```{r message=FALSE,warning=FALSE}
 dn <- ggplot(wildcats, aes(x=Longitud, y=Latitud)) +
@@ -480,24 +513,27 @@ ggplotly(dn)%>%
 
 #### Especies segun ecoregion en la que se encuentran
 
-Ecoregiones/Biomas
-1	Mediterranean Forests, Woodlands & Scrub
-2	Tropical & Subtropical Dry Broadleaf Forests
-3	Temperate Broadleaf & Mixed Forests
-4	Tropical & Subtropical Coniferous Forests
-5	Temperate Grasslands, Savannas & Shrublands
-6	Mangroves
-7	( )
-8	Montane Grasslands & Shrublands
-9	Tropical & Subtropical Grasslands, Savannas & Shrublands
-10	Tropical & Subtropical Moist Broadleaf Forests
-11	Flooded Grasslands & Savannas
-12	Montane Grasslands & Shrublands
-13	Magellanic subpolar forests
-14	Rock and Ice
-15	( )
+La categorias de Ecoregiones/Biomas que se observan son:
 
-```{r}
+1: Mediterranean Forests, Woodlands & Scrub
+2: Tropical & Subtropical Dry Broadleaf Forests
+3: Temperate Broadleaf & Mixed Forests
+4: Tropical & Subtropical Coniferous Forests
+5: Temperate Grasslands, Savannas & Shrublands
+6: Mangroves
+7: ( )
+8: Montane Grasslands & Shrublands
+9: Tropical & Subtropical Grasslands, Savannas & Shrublands
+10: Tropical & Subtropical Moist Broadleaf Forests
+11: Flooded Grasslands & Savannas
+12: Montane Grasslands & Shrublands
+13: Magellanic subpolar forests
+14: Rock and Ice
+15: ( )
+
+En este punto se muestran tres graficas diferentes en las que se representa: 1) la ubicacion espacial de los individuos segun la ecoregion (en color naranja: jaguares, verde: pumas), 2) la ubicacion espacial de los individuos por especie diferenciados por color segun ecoregion, y 3) la cantidad de individuos por especie segun ecoregion.
+
+```{r message=FALSE}
 ecoreg_spec <- raster::extract(ecoreg, wildcats[,4:3]) %>% 
   cbind(wildcats, .) %>% 
   as.data.frame()
@@ -505,6 +541,9 @@ ecoreg_spec <- raster::extract(ecoreg, wildcats[,4:3]) %>%
 ecoreg_spec <- na.omit(ecoreg_spec)
 
 ecoreg_spec$Ecoreg <- as.character(ecoreg_spec$.)
+
+r_eco <- plot(ecoreg)+
+  points(x=wildcats$Longitud, y=wildcats$Latitud, pch=20, col= cf2(wildcats$Nombre_Comun))
 
 ggplot(ecoreg_spec, aes(x=Longitud, y=Latitud, color = ecoreg_spec$Ecoreg)) +
   borders("world", xlim = c(-120, -30), ylim = c(-50, 25))+
@@ -525,7 +564,10 @@ ggplot(ecoreg_spec, aes(y=Ecoreg, x=Nombre_Comun, colour = Ecoreg)) +
 
 ## Analisis de correlacion con las variables ambientales
 
-Proceso de union de los puntos de observacion de las especies y los raster de las variables ambientales
+Este analisis se realiza con el fin de evaluar cuales son las variables mas adecuadas para una modelacion espacial.
+
+Para lograr este analisis se procede a unir de los puntos de observacion de las especies junto con los raster de las variables ambientales. En este proceso se excluye ecoregion, la cual es una variable categorica. De la base de datos wildcats unicamente se trabaja con algunas cuantas variables que tiene que ver con la especie y su ubicacion. Una vez se obtiene el resultado de la union, se procede a eliminar los valores nulos, los cuales serian aquellos pixel de las variables raster que no logran punto de union espacial con los individuos de las especies.
+
 ```{r}
 #Se extraen temas relevantes de las variables ambientales
 select_r = dropLayer(st,3)
@@ -539,6 +581,8 @@ jp_swd <- na.omit(jp_swd)
 
 ### Ploteo de la correlacion de variables
 
+Con el anterior resultado, se procede a aplicar un analisis de correlacion multiple y de igual forma graficar el resultado de dicho analisis. En la grafica se observan una representacion con circulos que poseen distintos tamaños y colores. La escala de colores esta en funcion de valores que oscilan entre 1 y -1, donde -1 es una correlacion inversa multiproporcional, es decir, que mientras una variable aumenta la otra disminuye, a su vez, valores cercanos a 1 muestran una correlacion directa multiproporcional, es decir, que hay una fuerte correlacion en cuyo caso mientras una variable aumenta la otra variable tambien lo hace, y por su parte, valores cercanos a 0 poseen una correlacion bastante defil, es decir que no hay asociacion entre las dos variables. Con el tamaño del circulo se visualiza la magnitud de la correlacion, osea, entre más grande el círculo más cercano a -1 o 1 según sea.
+
 ```{r}
 mt <- cor(jp_swd[,11:23])
 corrplot(mt, method = 'circle', type = 'upper')
@@ -546,18 +590,20 @@ corrplot(mt, method = 'circle', type = 'upper')
 
 ### Variables que menos se relacionan entre si
 
-Esto se hace a traves del analisis en regresion lineal VIF, el cual es el factor de inflación de la varianza. Este cuantifica la intensidad de la multicolinealidad en un análisis de regresión normal de mínimos cuadrados. Proporciona un índice que mide hasta qué punto la varianza (el cuadrado de la desviación estándar estimada) de un coeficiente de regresión estimado se incrementa a causa de la colinealidad. 
+Para realizar este el analisis se emplea la regresion lineal VIF, la cual es el factor de inflación de la varianza. Este cuantifica la intensidad de la multicolinealidad en un análisis de regresión normal de mínimos cuadrados. Proporciona un índice que mide hasta qué punto la varianza (el cuadrado de la desviación estándar estimada) de un coeficiente de regresión estimado se incrementa a causa de la colinealidad. Estamos considerando colinealidad en el contexto de un modelo estadístico que se utiliza para estimar la relación entre una variable de respuesta y un conjunto de variables predictoras ("independientes" o "explicativas"), osea, describe la situación en la que dos o más variables de predicción en un modelo estadístico están relacionadas linealmente. Dado el caso de que los factores VIF mayores que 10 implican problemas graves de multicolinealidad, el argumento th, el cual hace referencia al umbral de correlación, se establece como 10, de este modo se sabra cuales variables tienen problemas de correlacion y estas se descartaran para el modelado de distribucion.
 
 ```{r}
 # Analisis VIF
 vif.res <- vif(x = jp_swd[,11:ncol(jp_swd)])
-vif.step <- vifstep(x = jp_swd[,11:ncol(jp_swd)], th = 10)#Los factores VIF mayores que 10 implican problemas graves de multicolinealidad
+vif.step <- vifstep(x = jp_swd[,11:ncol(jp_swd)], th = 10)
 vrs <- vif.step@results$Variables %>% as.character()
 vif.step
 vrs
 ```
 
 ### Base de datos y variables con multicolinealidad
+
+A partir del paso anterior, fue posible conocer cuales variables tienen problemas de colinealidad a la vez que se conocia cuales variables se relacionan mejor entre si, los cuales se imprimen en l tabla siguiente junto con los individuos de las especies y sus respectivas ubicaciones espaciales
 
 ```{r}
 jp_fnl <- jp_swd %>% 
@@ -568,25 +614,25 @@ head(jp_fnl)
 
 ### Correlacion entre variables ambientales con multicolinealidad
 
-Con respecto al resultado de la correlacion se grafican las siguientes variables:
+Con respecto al resultado de la correlacion se grafican las relaciones entre variables con multicolinealidad:
 
-  *cld6190_ann : cobertura de nubes, anual
+*cld6190_ann : cobertura de nubes, anual
   
-  *dtr6190_ann : rango de temperatura diurna, anual
+*dtr6190_ann : rango de temperatura diurna, anual
   
-  *frs6190_ann : frecuencia de heladas, anual
+*frs6190_ann : frecuencia de heladas, anual
   
-  *h_dem : Modelo Digital de Elevacion
+*h_dem : Modelo Digital de Elevacion
   
-  *pre6190_I1 : precipitacion, enero
+*pre6190_I1 : precipitacion, enero
   
-  *pre6190_I4 : precipitacion, abril
+*pre6190_I4 : precipitacion, abril
   
-  *pre6190_I7 : precipitacion, julio
+*pre6190_I7 : precipitacion, julio
   
-  *pre6190_I10 : precipitacion, octubre
+*pre6190_I10 : precipitacion, octubre
   
-  *vap6190_ann : presion de vapor, anual)
+*vap6190_ann : presion de vapor, anual)
 
 ```{r}
 r_corr= st[[c(1,2,4,5,7,8,9,10,14)]]
@@ -595,62 +641,62 @@ raster::pairs(r_corr)
 
 ## Modelado de distribucion de especies
 
-El primer paso es extraer los valores de los predictores en las ubicaciones de los puntos
+El primer paso en este proceso de modelado es extraer los valores de los predictores en las ubicaciones de los puntos. Los predictores hacen referencia a los raster que conforman las variables ambientales que se emplearan en el modelado, los cuales son los que presentan multicolinealidad.
+Ademas, se crean 500 puntos aleatorios con base en los predictores, los cuales son empleados para evaluar la presencia (1) y ausencia (0) de individuos de las especies estudiadas en relacion a las variables ambientales (predictores). En este punto, se imprimen tablas para ver los resultados de presencia y ausencia, asi como un resumen general de este analisis.
 
 ```{r message=FALSE,warning=FALSE}
-pvals <- raster::extract(st, wildcats[,4:3]) %>% 
+pvals <- raster::extract(r_corr, wildcats[,4:3]) %>% 
                           cbind(wildcats, .) %>% 
                           as.data.frame()
-presvals <- pvals[,11:24]
-predictors <- st
+presvals <- pvals[,11:19]
+predictors <- r_corr
 
 backgr <- randomPoints(predictors, 500)
 absvals <- raster::extract(predictors, backgr)
 pb <- c(rep(1, nrow(presvals)), rep(0, nrow(absvals)))
 sdmdata <- data.frame(cbind(pb, rbind(presvals, absvals)))
-sdmdata[,'ecoreg'] = as.factor(sdmdata[,'ecoreg'])
 head(sdmdata)
 tail(sdmdata)
 summary(sdmdata)
 ```
 
-### Ajuste del modelo
+### Modelo de ajuste
 
-Para ello se utiliza la función (glm) la cual permite ajustar modelos lineales generalizados. Esta funcion devuelve un objeto modelo.
+En este proceso los métodos toman una fórmula que identifica las variables dependientes e independientes, acompañada de un marco de datos que contienen estas variables.
 
-En un primer modelo se trabajara con: 
+Para ello se utiliza la función (glm) la cual permite ajustar modelos lineales generalizados, especificados mediante una descripción simbólica del predictor lineal y una descripción de la distribución de errores.
 
-  *cld6190_ann : cobertura de nubes, anual
-  
-  *dtr6190_ann : rango de temperatura diurna, anual
-  
-  *frs6190_ann : frecuencia de heladas, anual
-  
-  *h_dem : Modelo Digital de Elevacion
-  
-  *pre6190_I1 : precipitacion, enero
-  
-  *pre6190_I4 : precipitacion, abril
-  
-  *pre6190_I7 : precipitacion, julio
-  
-  *pre6190_I10 : precipitacion, octubre
-  
-  *vap6190_ann : presion de vapor, anual)
+En un primer modelo se trabajara nuevamente con las variables ambientales con multicolinealidad: 
 
-En el segundo con todas las variables
+*cld6190_ann : cobertura de nubes, anual
+  
+*dtr6190_ann : rango de temperatura diurna, anual
+  
+*frs6190_ann : frecuencia de heladas, anual
+  
+*h_dem : Modelo Digital de Elevacion
+  
+*pre6190_I1 : precipitacion, enero
+  
+*pre6190_I4 : precipitacion, abril
+  
+*pre6190_I7 : precipitacion, julio
+  
+*pre6190_I10 : precipitacion, octubre
+  
+*vap6190_ann : presion de vapor, anual
+
 
 ```{r}
 m1 <- glm ( pb ~ cld6190_ann +	dtr6190_ann	+	frs6190_ann + h_dem	+ pre6190_l1 + pre6190_l10 + pre6190_l4 + pre6190_l7 + vap6190_ann, data = sdmdata )
 class ( m1 )
 summary ( m1 )
-m2 = glm ( pb ~ . , data = sdmdata )
-m2
+m1
 ```
 
 ### Modelado de envoltura climática
 
-El algoritmo BIOCLIM calcula la similitud de una ubicación comparando los valores de las variables ambientales en cualquier ubicación con una distribución porcentual de los valores en ubicaciones conocidas de ocurrencia. Cuanto más cerca del percentil 50 (la mediana), más adecuada es la ubicación. Las colas de la distribución no se distinguen, es decir, el percentil 10 se trata como equivalente al percentil 90.
+El algoritmo BIOCLIM calcula la similitud de una ubicación comparando los valores de las variables ambientales en cualquier ubicación con una distribución porcentual de los valores en ubicaciones conocidas de ocurrencia. Cuanto más cerca del percentil 50 (la mediana) más adecuada es la ubicación. Las colas de la distribución no se distinguen, es decir, el percentil 10 se trata como equivalente al percentil 90.
 
 Para este caso solo se usa datos de presencia, por lo que usamos 'presvals' en lugar de 'sdmdata'.
 
@@ -663,8 +709,11 @@ pairs ( bc )
 
 ### Predicción del modelo {.tabset .tabset-fade}
 
-Todos estos objetos "modelo", independientemente de su clase exacta, pueden utilizarse con la función de predicción para hacer predicciones para cualquier combinación de valores de las variables independientes. Hacer tales predicciones para algunos entornos puede ser muy útil para explorar y comprender las predicciones del modelo.
-A continuación, se realizan predicciones con el objeto del modelo glm 'm1' y para el modelo bioclim 'bc', para tres registros con valores para las variables: cld6190_ann, dtr6190_ann, frs6190_ann, h_dem, pre6190_l1, pre6190_l10, pre6190_l4, pre6190_l7, vap6190_ann
+Todos estos objetos "modelo", independientemente de su clase exacta, pueden utilizarse con la función de "predict" con el fin de hacer predicciones para cualquier combinación de valores de las variables independientes.
+
+A continuación, se realizan predicciones con el objeto del modelo glm 'm1' y para el modelo bioclim 'bc', para tres registros con valores para las variables: cld6190_ann, dtr6190_ann, frs6190_ann, h_dem, pre6190_l1, pre6190_l10, pre6190_l4, pre6190_l7, vap6190_ann. Esto ultimo, se muestran en un primer dataframe.
+
+En los resultados de la prediccion se encuentran categorias donde el 1 indica menos frecuencia para encontrar especies, 2 frecuencia media y 3 donde seria mas frecuente encontrar especies.
 
 ```{r}
 cld6190_ann = c(40, 60, 80)
@@ -679,11 +728,13 @@ vap6190_ann = c(50, 100, 250)
 
 pdt = data.frame ( cbind (cld6190_ann, dtr6190_ann, frs6190_ann,  h_dem, pre6190_l1, pre6190_l10, pre6190_l4, pre6190_l7, vap6190_ann))
 pdt
-predict (m1 , pdt) #categorias de prediccion= 1: menos frecuente encontrar especies, 3: mas frecuente encontrar especies
+predict (m1 , pdt) 
 predict (bc , pdt)
 ```
 
 #### Graficos de respuesta para cada variable
+
+Hacer tales predicciones para algunos entornos puede ser muy útil para explorar y comprender las predicciones del modelo, por tanto en este punto, se utiliza la función "response" para crea gráficos de respuesta para cada variable, con las otras variables en su valor medio, en funcion del modelo bioclim.
 
 ```{r}
 response (bc)
@@ -691,7 +742,9 @@ response (bc)
 
 #### Mapa de puntajes de idoneidad
 
-En el espectro de colores del mapa se observan los valores mas altos como aquellos donde es idoneo encontrar estas especies, al contrario en el espectro, donde es menos idoneo
+Por ultimo, se representan los resultados de la prediccion en un mapa para poder visualizar la posible distribucion de especies en funcion de las variables ambientales y la presencia de individuos observados de las especies estudiadas.
+
+En el espectro de colores del mapa se observan los valores mas altos como aquellos donde es idoneo encontrar estas especies, y al contrario en el espectro, donde es menos idoneo presencia de estas.
 
 ```{r}
 p <- predict (predictors,m1)
