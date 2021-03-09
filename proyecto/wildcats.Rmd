@@ -23,11 +23,11 @@ dir <- "E:/Analista de datos/DAT004/Proyecto Final/"
 
 # About this
 
-This document represents an academic research whose main theme is an analysis of the location and frequency of observation, as well as it a species distribution modeling (based on environmental variables) of two American Wildcats Species, Jaguar (Panthera onca) and Mountain Lion (Felis concolor or Puma concolor). For this study is used a database of observations recorded from <b>iNaturalist</b> species information repository (https://www.inaturalist.org/) and geographical information about biodiversity informatics from American Museum of Natural History website (https://biodiversityinformatics.amnh.org/).
+This document represents an academic research whose main theme is an analysis of the location and frequency of observation, as well as it a species distribution modeling (based on environmental variables) of two American Wildcats Species, Jaguar (Panthera onca) and Mountain Lion (Felis concolor or Puma concolor). For this study is used a database of observations recorded from <b>iNaturalist</b> species information repository (https://www.inaturalist.org/) and geographical information about biodiversity informatics from American Museum of Natural History website (https://biodiversityinformatics.amnh.org/)
 
 # Libraries used
 
-```{r message=FALSE,warning=FALSE}
+```{r message=FALSE, warning=FALSE}
 library(dplyr)
 library(tibble)
 library(tidyr)
@@ -85,7 +85,7 @@ colnames(df)
 
 ### Number of register in the datasets
 
-Here, we printed the data summary by species to know the quantity of these.
+Here, we printed the data summary by species to know the quantity of these
 
 ```{r}
 df%>%
@@ -103,7 +103,7 @@ ndf <- df%>%
 
 and after that, we created a bar chart, with the data by species, to know the result.
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 
 count_sp <- ndf%>%
             group_by(Nombre_Comun)%>%
@@ -148,7 +148,7 @@ The study area corresponds to the territories of Central and South America, as w
 
 Some of the coverages used to know the habitat of the species are climatic variables that derive from data provided by the Intergovernmental Panel on Climate Change and that were produced using interpolation based on readings taken from weather stations around the world from 1961 to 1990.
 
-Los coberturas corresponden a:
+The coverages are:
 
 *cld6190_ann : cloud cover, annual
 
@@ -189,7 +189,7 @@ r_files
 
 #### Environmental variables visualization
 
-Next, the rasters that represent the environmental variables with which it will be used in the distribution modeling are graphed.
+Next, the rasters that represent the environmental variables with which it will be used in the distribution modeling are graphed
 
 ```{r message=FALSE, warning=FALSE}
 st <- raster::stack(r_files) 
@@ -226,17 +226,17 @@ raster::hist(ecoreg, main="Histogram of Ecoregions in study area", col="green")
 
 ## Delimitation of the study area 
  
-Next, a vector-type spatial file corresponding to the countries that make up the study area is loaded.
+Next, a vector-type spatial file corresponding to the countries that make up the study area is loaded
 
 ```{r}
 area_estudio <- sf::st_read(dsn= paste0(dir,"/Datasets/samples/map.geojson"), layer="map", quiet=TRUE)
 ```
 
-#### Mapa de paises del area de estudio
+#### Map of countries in the study area
 
-En el siguiente mapa se muestra los paises que conforman el area de estudio
+The following map shows the countries that make up the study area
 
-```{r}
+```{r message=FALSE, warning=FALSE}
 map.area <- plot_geo(area_estudio, name=~pais, color = I("#89C5DA"))%>% hide_legend()%>%
   layout(title = "Countries of study area")
 
