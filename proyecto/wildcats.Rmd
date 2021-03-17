@@ -1,5 +1,5 @@
 ---
-title: "Spatial-Temporal Statistics and Geographical Distribution Modeling of Jaguars and Mountain Lion in Central and South America"
+title: "Spatial-Temporal Statistics and Geographical Distribution Modeling of Jaguars and Pumas in Central and South America, period 2011-2019"
 author: "Author: Jose Francisco Nuñez Obando"
 date: "Create date: february, 2020"
 output:
@@ -23,9 +23,9 @@ dir <- "E:/Analista de datos/DAT004/Proyecto Final/"
 
 # About this
 
-This document represents an academic research whose main theme is an analysis of the location and frequency of observation, as well as it a species distribution modeling (based on environmental variables) of two American Wildcats Species, Jaguar (Panthera onca) and Mountain Lion (Felis concolor or Puma concolor). For this study is used a database of observations recorded from <b>iNaturalist</b> species information repository (https://www.inaturalist.org/) and geographical information about biodiversity informatics from American Museum of Natural History website (https://biodiversityinformatics.amnh.org/)
+This document represents academic research whose main theme is an analysis of the location and frequency of observation, as well as a species distribution modeling (based on environmental variables) of two american wildcats species, Jaguar (Panthera onca) and Pumas (Felis concolor or Puma concolor). This study is used a database of observations recorded from the <b>iNaturalist</b> species information repository (https://www.inaturalist.org/) and geographical information about biodiversity informatics from the American Museum of Natural History website (https://biodiversityinformatics.amnh.org/).
 
-# Libraries used
+# Libraries Used
 
 ```{r message=FALSE, warning=FALSE}
 library(dplyr)
@@ -54,12 +54,12 @@ library(Hmisc)
 library(dismo)
 ```
 
-# Extraction, Transformation and Load databses
+# Extraction, Transformation and Load Databases
 
 
 ## Datasets
 
-Step related with load datasets
+Steps Related with Load Datasets.
 
 ```{r}
 df <- read.csv(paste0(dir, "/Datasets/samples/wildcats_df.csv"), stringsAsFactors=F, sep=",", na.strings=c("","NA"), encoding="UTF-8")
@@ -67,7 +67,7 @@ df <- read.csv(paste0(dir, "/Datasets/samples/wildcats_df.csv"), stringsAsFactor
 colnames(df)
 ```
 
-Column name changes
+Column Name Changes.
 
 ```{r}
 df <- df[,c(1:5,7)]
@@ -84,7 +84,7 @@ colnames(df)
 
 ### Number of register in the datasets
 
-Here, we printed the data summary by species to know the quantity of these
+Here, we show the data summary by species to know the quantity of these.
 
 ```{r}
 df%>%
@@ -92,7 +92,7 @@ df%>%
   dplyr::summarise(length(Nombre_Comun), .groups = 'drop')
 ```
 
-After, we procced to the correction of data in "Nombre_Comun" column because to standardize the duplicate registers
+Next, we procced to the correction of data in "Nombre_Comun" column in order to standardize the duplicate registers.
 
 ```{r}
 ndf <- df%>%
@@ -100,7 +100,7 @@ ndf <- df%>%
   mutate(Nombre_Comun=ifelse(Nombre_Comun=="Puma de América del Sur", "Puma",Nombre_Comun))
 ```
 
-and after that, we created a bar chart, with the data by species, to know the result.
+and after that we created a bar chart with the data by species to know the result.
 
 ```{r message=FALSE, warning=FALSE}
 
@@ -112,12 +112,12 @@ plot_ly(data=count_sp, x = ~Nombre_Comun, y = ~Count, type = 'bar', text = ~Coun
         marker = list(color = c('#ffa500','#13ED3F'),
                       line = list(color = c('rgba(204,204,204,1)', 'rgba(204,204,204,1)'),
                                   width = 1.5))) %>%
-  layout(title = "Count of register species in the inicial dataframe",
-         xaxis = list(title = "species"),
-         yaxis = list(title = "count"))
+  layout(title = "Count of Register Species in the Inicial Dataframe",
+         xaxis = list(title = "Species"),
+         yaxis = list(title = "Count"))
 ```
 
-### Map of species distribution to world scale
+### Map of Species Distribution to World Scale
 
 
 ```{r}
@@ -141,11 +141,11 @@ m
 ```
 
 
-## Datasets about environmental variables in the study area
+## Datasets about Environmental Variables in the Study Area
 
-The study area corresponds to the territories of Central and South America, as well as the Caribbean.
+The study area corresponds to the territories of Central and South America as well as the Caribbean.
 
-Some of the coverages used to know the habitat of the species are climatic variables that derive from data provided by the Intergovernmental Panel on Climate Change and that were produced using interpolation based on readings taken from weather stations around the world from 1961 to 1990.
+Some of the coverages used to know the habitat of the species are climatic variables that are derived from data provided by the Intergovernmental Panel on Climate Change and that were produced using interpolation based on readings taken from weather stations around the world from 1961 to 1990.
 
 The coverages are:
 
@@ -171,24 +171,23 @@ The coverages are:
 
 *tmn6190_ann : mean temperature, annual
 
-*tmp6190_ann : minimum temperature , annual
+*tmp6190_ann : minimum temperature, annual
 
 *tmx6190_ann : maximum temperature, annual
 
 *vap6190_ann : vapor pressure, annual
 
 
-### Environmental data {.tabset .tabset-fade}
+### Environmental Data {.tabset .tabset-fade}
 
 ```{r}
 r_files <- list.files(paste0(dir, "Datasets/coverages"),
                        full.names = T)
-r_files
 ```
 
 #### Environmental variables visualization
 
-Next, the rasters that represent the environmental variables with which it will be used in the distribution modeling are graphed
+Next, the rasters that represent the environmental variables that will be used in the distribution modeling are graphed.
 
 ```{r message=FALSE, warning=FALSE}
 st <- raster::stack(r_files) 
@@ -196,7 +195,7 @@ st <- raster::stack(r_files)
 raster::plot(st)
 ```
 
-#### Sample of one of the environmental variables: ecoregions
+#### Sample of one of the Environmental Variables: Ecoregions
 
 The exemplary variable, ecoregion, has the following categories:
 
@@ -219,30 +218,30 @@ The exemplary variable, ecoregion, has the following categories:
 
 ```{r message=FALSE,warning=FALSE}
 ecoreg = raster(r_files[3])
-raster::plot(ecoreg, main="Ecoregions of study area")
-raster::hist(ecoreg, main="Histogram of Ecoregions in study area", col="green")
+raster::plot(ecoreg, main="Ecoregions of Study Area")
+raster::hist(ecoreg, main="Histogram of Ecoregions in Study Area", col="green")
 ```
 
-## Delimitation of the study area 
+## Delimitation of the Study Area 
  
-Next, a vector-type spatial file corresponding to the countries that make up the study area is loaded
+Next, a vector-type spatial file corresponding to the countries that make up the study area is loaded.
 
 ```{r}
 area_estudio <- sf::st_read(dsn= paste0(dir,"/Datasets/samples/map.geojson"), layer="map", quiet=TRUE)
 ```
 
-#### Map of countries in the study area
+#### Map of Countries in the Study Area
 
-The following map shows the countries that make up the study area
+The following map shows the countries that make up the study area.
 
 ```{r message=FALSE, warning=FALSE}
 map.area <- plot_geo(area_estudio, name=~pais, color = I("#89C5DA"))%>% hide_legend()%>%
-  layout(title = "Countries of study area")
+  layout(title = "Countries of Study Area")
 
 map.area
 ```
 
-#### Mapping the recorded locations of species in the study area
+#### Mapping the Recorded Locations of Species in the Study Area
 
 In advance, a selection is made from the database of the species with respect to the study area
 
@@ -255,7 +254,7 @@ wildcats <- data.frame(wildcats)
 wildcats <- wildcats[,1:6]
 ```
 
-and then the observation points of the species to be studied are displayed on a dynamic map
+and then the observation points of the species to be studied are displayed on a dynamic map.
 
 ```{r}
 
@@ -276,7 +275,7 @@ m2 <- leaflet(wildcats) %>% addTiles(group = "OSM (default)") %>%
 m2
 ```
 
-#### Database visualization
+#### Database Visualization
 
 First, an inclusion of new variables related to the issue of temporality is carried out
 
@@ -290,7 +289,7 @@ wildcats$Y.R <- format(wildcats$Fecha_Registro, "%Y") #col10
 wildcats <- wildcats[, colnames(wildcats)[c(1:4,6,5,8,10,9,7)]] #Reorganizacion de las columnas
 ```
 
-and then proceed to view the final database in a dynamic table
+and then proceed to view the final database in a dynamic table.
 
 ```{r}
 datatable(wildcats, extensions = c('Buttons','FixedColumns', 'RowReorder'),
@@ -304,30 +303,30 @@ datatable(wildcats, extensions = c('Buttons','FixedColumns', 'RowReorder'),
 
 # Results
 
-## Spatio-temporal statistics of the studied species 
+## Spatio-temporal Statistics of the Studied Species 
 
 In this first section, analyzes are carried out on spatio-temporal statistics regarding the pumas and jaguars of a sector of the American continent.
 
-### Number of species according to location and seasonality {.tabset .tabset-fade}
+### Number of Species According to Location and Seasonality {.tabset .tabset-fade}
 
 The following graphs show the number of species by country
 
-#### Species by country and month of observation 
+#### Species by Country and Month of Observation 
 
-In this first graph of this subsection, the amount per country is shown in relation to the month in which the observations occurred
+In this first graph of this subsection, the amount per country is shown in relation to the month in which the observations occurred.
 
 ```{r message=FALSE,warning=FALSE}
 p_m <- plot_ly(data=wildcats, x= ~Pais, split= ~Nombre_Comun, color= I(cf2(wildcats$Nombre_Comun)), 
         frame=wildcats$M.R, type = "histogram", alpha = 0.6)%>%
-        layout(barmode = "overlay", title = "Species by country and month of observation")
+        layout(barmode = "overlay", title = "Species by Country and Month of Observation")
 p_m%>%animation_opts(frame= 2000, redraw = TRUE)%>%
         animation_slider(currentvalue = list(prefix = "Month ", font = list(color="red")))
 
 ```
 
-#### Number of Jaguars per country
+#### Number of Jaguars per Country
 
-In order to represent the number of species per country, a pre-selection of the data per species is carried out
+In order to represent the number of species per country, a pre-selection of the data per species is carried out.
 
 ```{r}
 c.jaguars <- wildcats%>%
@@ -340,55 +339,54 @@ c.pumas <- wildcats%>%
               dplyr::summarise(Cant=n(), .groups = 'drop')
 ```
 
-Y posteriormente se procede a graficar la informacion primero de jaguares
+Next, the jaguar information is graphed.
 
 ```{r}
 data(worldgeojson, package = "highcharter")
 
 highchart() %>% 
   hc_title(text = "Number of Jaguars") %>% 
-  hc_subtitle(text = "per country") %>% 
+  hc_subtitle(text = "per Country") %>% 
   hc_add_series_map(map = worldgeojson, df = c.jaguars, name = "number of individuals",
                     value = "Cant", joinBy = c("name", "Pais"), allAreas=FALSE, animation=TRUE)%>% 
   hc_colorAxis(min= 1,
             type='logarithmic',
             stops = color_stops())%>% 
   hc_tooltip(useHTML = TRUE, headerFormat = "",
-             pointFormat = "Country: {point.name}/ Number of species: {point.Cant}")%>%
+             pointFormat = "Country: {point.name}/ Number of Species: {point.Cant}")%>%
   hc_legend(layout= 'horizontal',
             verticalAlign= 'top')%>%
   hc_mapNavigation(enabled = TRUE) 
 ```
 
-#### Number of Pumas per country
+#### Number of Pumas per Country
 
-Pumas
 
 ```{r}
 data(worldgeojson, package = "highcharter")
 
 highchart() %>% 
   hc_title(text = "Number of Pumas") %>% 
-  hc_subtitle(text = "per country") %>% 
+  hc_subtitle(text = "per Country") %>% 
   hc_add_series_map(map = worldgeojson, df = c.pumas, name = "number of individuals",
                     value = "Cant", joinBy = c("name", "Pais"), allAreas= FALSE, animation=TRUE)%>% 
   hc_colorAxis(min= 1,
             type='logarithmic',
             stops = color_stops())%>% 
   hc_tooltip(useHTML = TRUE, headerFormat = "",
-             pointFormat = "Country: {point.name}/ Number of species: {point.Cant}")%>%
+             pointFormat = "Country: {point.name}/ Number of Species: {point.Cant}")%>%
   hc_legend(layout= 'horizontal',
             verticalAlign= 'top')%>%
   hc_mapNavigation(enabled = TRUE) 
 ```
 
-### Number of individuals observed on a timeline {.tabset .tabset-fade}
+### Number of Individuals Observed on a Timeline {.tabset .tabset-fade}
 
-In this subsection, quantities of the species observed are analyzed in relation to the temporality of the observations
+In this subsection, quantities of the species observed are analyzed in relation to the temporality of the observations.
 
-#### Species by month and year
+#### Species by Month and Year
 
-As was done in a previous point, in order to represent the number of species according to the observation period, a preselection of the data is carried out by species
+As was done in a previous point, in order to represent the number of species according to the observation period, a preselection of the data is carried out by species.
 
 ```{r}
 c.jaguars <- wildcats%>%
@@ -404,24 +402,24 @@ ct.jaguars <- ts(data=c.jaguars, start = c(2011,10), end = c(2019,12), frequency
 ct.pumas <- ts(data=c.pumas, start = c(2011,10), end = c(2019,12), frequency = 12)
 ```
 
-And then a time series is plotted on a line of quantities of observed species
+Next, a time series is plotted on a line of quantities of observed species.
 
 ```{r}
 highchart(type = "stock") %>% 
-  hc_title(text = "Number of species") %>% 
-  hc_subtitle(text = "on the observation timeline") %>% 
-  hc_add_series(ct.jaguars[,2], type = "line", pointInterval= 30*24*3600*1000, name="Number of jaguars observed to date", color = "#ffa500")%>%
-  hc_add_series(ct.pumas[,2], type = "line", pointInterval= 30*24*3600*1000, name="Number of pumas observed to date", color = "#13ED3F")%>%
+  hc_title(text = "Number of Species") %>% 
+  hc_subtitle(text = "on the Observation Timeline") %>% 
+  hc_add_series(ct.jaguars[,2], type = "line", pointInterval= 30*24*3600*1000, name="Number of Jaguars Observed to Date", color = "#ffa500")%>%
+  hc_add_series(ct.pumas[,2], type = "line", pointInterval= 30*24*3600*1000, name="Number of Pumas Observed to Date", color = "#13ED3F")%>%
   hc_xAxis(title= list(text='Date'), type='datetime')%>%
-  hc_yAxis(title= list(text='Number of species observed'), opposite = FALSE) %>% 
+  hc_yAxis(title= list(text='Number of Species Observed'), opposite = FALSE) %>% 
   hc_credits(enabled = TRUE, text = "By: Jose Francisco Nuñez O", position=list(align = "center"),
              href = "http://geoimaginarte.github.io/mysite") %>% 
   hc_legend(enabled=TRUE)
 ```
 
-#### Decomposition and behavior of observations of individuals on the timeline
+#### Decomposition and Behavior of Observations of Individuals on the Timeline
 
-Likewise, a decomposition of the time series is carried out to observe the behavior of the time line according to the observed, the trend, the seasonal and the random
+Likewise, a decomposition of the time series is carried out to observe the behavior of the time line according to the observed, the trend, the seasonal and the random.
 
 ```{r}
 decomp_jaguars <- decompose(ct.jaguars[,2])
@@ -435,13 +433,13 @@ par(adj = 1)
 title(sub = "Pumas", cex.sub = 1.5, font.sub = 3, col.sub = "#13ED3F")
 ```
 
-### Species distribution pattern {.tabset .tabset-fade}
+### Species Distribution Pattern {.tabset .tabset-fade}
 
-In this section, the location of the observed species is analyzed in terms of distribution, density per occupied space (grouping), in addition to their location in relation to the ecoregion it occupy
+In this section, the location of the observed species is analyzed in terms of distribution, density per occupied space (grouping), in addition to  location in relation with the ecoregion.
 
-#### Spatial distribution of species by month
+#### Spatial Distribution of Species by Month
 
-In these first maps the corresponding location of the individuals of the different species is visualized, as well as the location dynamics in relation to the month in which it was observed
+In these first maps the corresponding location of the individuals of the different species is visualized, as well as the location dynamics in relation to the month in which specie was observed.
 
 ```{r message=FALSE,warning=FALSE}
 
@@ -451,7 +449,7 @@ e.m <- ggplot(wildcats, aes(x=Longitud, y=Latitud, frame=M.R, text = paste0("Cou
   borders("world", xlim = c(-120, -30), ylim = c(-50, 25))+
   geom_point(data=filter(wildcats), shape = 21, colour= cf2(wildcats$Nombre_Comun) ,size = 1)+
   facet_grid(cols = vars(Nombre_Comun)) +
-  labs(title = "Spatial distribution of species by month")
+  labs(title = "Spatial Distribution of Species by Month")
 
 ggplotly(e.m)%>% 
   animation_opts(
@@ -462,9 +460,9 @@ ggplotly(e.m)%>%
   )
 ```
 
-#### Geometric distribution pattern
+#### Geometric Distribution Pattern
 
-Like the previous maps of this Subpart, the location of the individuals of the different species is visualized, referring to the pattern of Elliptic spatial distribution that such individuals follow as location dynamics according to the month in which it was observed
+Similar the previous maps of this Subpart, the location of the individuals of the different species is visualized, referring to the pattern of elliptic spatial distribution that such individuals follow as location dynamics according to the month in which specie was observed.
 
 ```{r message=FALSE,warning=FALSE}
 pd <- qplot(data = wildcats, x=Longitud, y=Latitud) +
@@ -483,9 +481,9 @@ ggplotly(pd)%>%
   )
 ```
 
-#### Density of each species
+#### Density of Each Species
 
-In this pair of maps on each species studied, the level of density is displayed that shows the location of the individuals in the different months in which it was observed
+In this pair of maps on each species studied, the level of density is displayed that shows the location of the individuals in the different months in which specie was observed.
 
 ```{r message=FALSE,warning=FALSE}
 dn <- ggplot(wildcats, aes(x=Longitud, y=Latitud)) +
@@ -495,7 +493,7 @@ dn <- ggplot(wildcats, aes(x=Longitud, y=Latitud)) +
   facet_grid(cols = vars(Nombre_Comun)) +
   scale_fill_viridis_c(option = "viridis") +
   theme(legend.position = "magma") +
-  labs(title = "Density of each species")
+  labs(title = "Density of Each Species")
 
 ggplotly(dn)%>% 
   animation_opts(
@@ -506,7 +504,7 @@ ggplotly(dn)%>%
   )
 ```
 
-#### Species according to ecoregion
+#### Species According to Ecoregion
 
 The categories of Ecoregions/Biomes:
 
@@ -526,7 +524,7 @@ The categories of Ecoregions/Biomes:
 14: Rock and Ice
 15: ( )
 
-At this point, three different graphs are shown in which it is represented: 1) the spatial location of the individuals according to the ecoregion (in orange: jaguars, green: pumas), 2) the spatial location of the individuals by species differentiated by color according to ecoregion, and 3) the number of individuals per species according to ecoregion
+At this point, three different graphs are shown in which species area represented: 1) the spatial location of the individuals according to the ecoregion (in orange: jaguars, green: pumas), 2) the spatial location of the individuals by species differentiated by color according to ecoregion, and 3) the number of individuals per species according to ecoregion.
 
 ```{r message=FALSE}
 ecoreg_spec <- raster::extract(ecoreg, wildcats[,4:3]) %>% 
@@ -545,23 +543,23 @@ ggplot(ecoreg_spec, aes(x=Longitud, y=Latitud, color = ecoreg_spec$Ecoreg)) +
   geom_point(data=filter(ecoreg_spec), shape = 21, size = 1)+
   scale_colour_manual(values = lacroix_palette("PassionFruit", n=14))+
   facet_grid(cols = vars(Nombre_Comun)) +
-  labs(title = "Species according to ecoregion")
+  labs(title = "Species According to Ecoregion")
 
 ggplot(ecoreg_spec, aes(y=Ecoreg, x=Nombre_Comun, colour = Ecoreg)) +
   geom_count(alpha=0.5) +
   scale_colour_manual(values = lacroix_palette("PassionFruit", n=14))+
-  labs(title = "Number of Species according to ecoregion",
+  labs(title = "Number of Species According to Ecoregion",
        x = "Specie",
        y = "Ecoregions",
        size = "")
 ```
 
 
-## Correlation analysis with environmental variables
+## Correlation Analysis with Environmental Variables
 
-This analysis is carried out in order to evaluate which are the most suitable variables for spatial modeling
+This analysis is carried out in order to evaluate which are the most suitable variables for spatial modeling.
 
-To achieve this analysis, it proceed to unite the observation points of the species together with the raster of the environmental variables. This process excludes ecoregion, which is a categorical variable. The wildcats database only works with a few variables that have to do with the species and its location. Once the result of the union is obtained, it proceed to eliminate the null values, which would be those pixels of the raster variables that do not achieve a point of spatial union with the individuals of the species
+To achieve this analysis, it proceed to unite the observation points of the species together with the raster of the environmental variables. This process excludes ecoregion, which is a categorical variable. The wildcats database only works with a few variables that have to do with the species and its location. Once the result of the union is obtained, it proceed to eliminate the null values, which would be those pixels of the raster variables that do not achieve a point of spatial union with the individuals of the species.
 
 ```{r}
 #Relevant topics are extracted from environmental variables
@@ -574,18 +572,18 @@ jp_swd <- raster::extract(select_r, wildcats[,4:3]) %>%
 jp_swd <- na.omit(jp_swd) 
 ```
 
-### Plotting the correlation of variables
+### Plotting the Correlation of Variables
 
-With the previous result, it proceed to apply a multiple correlation analysis and similarly graph the result of said analysis. In the graphics we see a representation with circles that have different sizes and colors. The color scale is based on values that range from 1 to -1, where -1 is a multiproportional inverse correlation, that is, while one variable increases the other decreases, in turn, values close to 1 show a direct multiproportional correlation, that is, there is a strong correlation in which case while one variable increases the other variable also does, and for its part, values close to 0 have a rather weak correlation, that is, there is no association between the two variables. Moreover, with the size of the circle is possible to visualize the magnitude of the correlation, osea, between the larger the circle closest to -1 or 1
+With the previous result, it proceed to apply a multiple correlation analysis and similarly graph the result of said analysis. In the graphics we see a representation with circles that have different sizes and colors. The color scale is based on values that range from 1 to -1, where -1 is a multiproportional inverse correlation, that is, while one variable increases the other decreases, in turn, values close to 1 show a direct multiproportional correlation, that is, there is a strong correlation in which case while one variable increases the other variable also does, and for its part, values close to 0 have a rather weak correlation, that is, there is no association between the two variables. Moreover, with the size of the circle is possible to visualize the magnitude of the correlation, osea, between the larger the circle closest to -1 or 1.
 
 ```{r}
 mt <- cor(jp_swd[,11:23])
 corrplot(mt, method = 'circle', type = 'upper')
 ```
 
-### Environmental Variables that are least interrelated
+### Environmental Variables that are Least Interrelated
 
-To perform this analysis, the linear regression VIF is used, which is the inflation factor of the variance. This quantifies the intensity of multicolinearity in a normal least squares regression analysis. It provides an index that measures the extent to which the variance (the square of the estimated standard deviation) of an estimated regression coefficient is increased because of collinearity. It is considering collinearity in the context of a statistical model is used to estimate the relationship between a response variable and a set of predictor variables ("independent" or "explanatory"), that is, describes the situation in which two or more predictor variables in a statistical model are linearly related. Given the case that VIF factors greater than 10 involve serious multicolinearity problems, the argument th, which refers to the correlation threshold, is set as 10, in this way it will be known which variables have correlation problems and these will be discarded for distribution modeling
+To perform this analysis, the linear regression VIF is used, which is the inflation factor of the variance. This quantifies the intensity of multicolinearity in a normal least squares regression analysis. It provides an index that measures the extent to which the variance (the square of the estimated standard deviation) of an estimated regression coefficient is increased because of collinearity. It is considering collinearity in the context of a statistical model is used to estimate the relationship between a response variable and a set of predictor variables ("independent" or "explanatory"), that is, describes the situation in which two or more predictor variables in a statistical model are linearly related. Given the case that VIF factors greater than 10 involve serious multicolinearity problems, the argument th, which refers to the correlation threshold, is set as 10, in this way it will be known which variables have correlation problems and these will be discarded for distribution modeling.
 
 ```{r}
 # Analisis VIF
@@ -596,9 +594,9 @@ vif.step
 vrs
 ```
 
-### Database and variables with multicollinearity
+### Database and Variables with Multicollinearity
 
-From the previous step, it was possible to know which variables have collinearity problems while it was known which variables are better related to each other, which are printed in the following table together with the individuals of the species and their respective spatial locations
+From the previous step, it was possible to know which variables have collinearity problems while it was known which variables are better related to each other, which are printed in the following table together with the individuals of the species and their respective spatial locations.
 
 ```{r}
 jp_fnl <- jp_swd %>% 
@@ -607,7 +605,7 @@ jp_fnl <- jp_swd %>%
 head(jp_fnl)
 ```
 
-### Correlation between environmental variables with multicollinearity
+### Correlation between Environmental Variables with Multicollinearity
 
 Regarding the result of the correlation, the relationships between variables with multicollinearity are plotted:
 
@@ -634,10 +632,11 @@ r_corr= st[[c(1,2,4,5,7,8,9,10,14)]]
 raster::pairs(r_corr)
 ```
 
-## Species distribution modeling
+## Species Distribution Modeling
 
 The first step in this modeling process is to extract the predictor values at the point locations. The predictors refer to the rasters that make up the environmental variables that will be used in the modeling, which are those that present multicollinearity.
-In addition, 500 random points are created based on the predictors, which are used to evaluate the presence (1) and absence (0) of individuals of the studied species in relation to the environmental variables (predictors). At this point, tables are printed to view the presence and absence results, as well as a general summary of this analysis
+
+In addition, 500 random points are created based on the predictors, which are used to evaluate the presence (1) and absence (0) of individuals of the studied species in relation to the environmental variables (predictors). At this point, tables are printed to view the presence and absence results, as well as a general summary of this analysis.
 
 ```{r message=FALSE,warning=FALSE}
 pvals <- raster::extract(r_corr, wildcats[,4:3]) %>% 
@@ -655,7 +654,7 @@ tail(sdmdata)
 summary(sdmdata)
 ```
 
-### Fit model
+### Fit Model
 
 In this process, the methods take a formula that identifies the dependent and independent variables, accompanied by a data frame containing these variables.
 
@@ -689,11 +688,11 @@ summary ( m1 )
 m1
 ```
 
-### Climate envelope modeling
+### Climate Envelope Modeling
 
 The BIOCLIM algorithm calculates the similarity of a location by comparing the values of environmental variables at any location with a percentage distribution of the values at known locations of occurrence. The closer to the 50th percentile (the median), the more suitable the location. The tails of the distribution are not distinguished, that is, the 10th percentile is treated as equivalent to the 90th percentile.
 
-For this case only presence data is used, then it is use 'presvals' instead of 'sdmdata'
+For this case only presence data is used, then it is use 'presvals' instead of 'sdmdata'.
 
 ```{r}
 bc <- bioclim ( presvals [, c ( 'cld6190_ann',	'dtr6190_ann',	'frs6190_ann', 'h_dem', 'pre6190_l1', 'pre6190_l10', 'pre6190_l4', 'pre6190_l7', 'vap6190_ann' )])
@@ -702,13 +701,13 @@ bc
 pairs ( bc )
 ```
 
-### Model prediction {.tabset .tabset-fade}
+### Model Prediction {.tabset .tabset-fade}
 
 All these "model" objects, regardless of their exact class, can be used with the "predict" function in order to make predictions for any combination of independent variable values.
 
 Then, predictions are made with the glm model object 'm1' and for the bioclim model 'bc', for three records with values for the variables: cld6190_ann, dtr6190_ann, frs6190_ann, h_dem, pre6190_l1, pre6190_l10, pre6190_l4, pre6190np_l4, pre6190np0_l4 . The latter are shown in a first dataframe.
 
-In the results of the prediction there are categories where 1 indicates less frequency to find species, 2 average frequency and 3 where it would be more frequent to find species
+In the results of the prediction there are categories where 1 indicates less frequency to find species, 2 average frequency and 3 where it would be more frequent to find species.
 
 ```{r}
 cld6190_ann = c(40, 60, 80)
@@ -727,9 +726,9 @@ predict (m1 , pdt)
 predict (bc , pdt)
 ```
 
-#### Response graphs for each variable
+#### Response Graphs for Each Variable
 
-Making such predictions for some environments can be very useful to explore and understand the predictions of the model, therefore at this point, the "response" function is used to create response graphs for each variable, with the other variables at their mean value, based on the bioclim model
+Making such predictions for some environments can be very useful to explore and understand the predictions of the model, therefore at this point, the "response" function is used to create response graphs for each variable, with the other variables at their mean value, based on the Bioclim Model.
 
 ```{r}
 response (bc)
@@ -739,7 +738,7 @@ response (bc)
 
 Finally, the results of the prediction are represented on a map to be able to visualize the possible distribution of species based on environmental variables and the presence of observed individuals of the species studied.
 
-In the color spectrum of the map, the highest values are observed, such as those where it is suitable to find these species, and on the contrary in the spectrum, where the presence of these is less suitable
+In the color spectrum of the map, the highest values are observed, such as those where it is suitable to find these species, and on the contrary in the spectrum, where the presence of these is less suitable.
 
 ```{r}
 p <- predict (predictors,m1)
